@@ -1,0 +1,39 @@
+*.log
+*.pot
+*.pyc
+__pycache__
+.db.sqlite3
+media
+.my_env
+/my_env/
+**/migrations/
+/cars_showrooms/migrations/
+/accounts/migrations/
+/accounts/migrations/__pycache__/
+/products/migrations/
+/products/migrations/__pycache__/
+.Pipfile.lock
+.Pipfile
+Pipfile
+Pipfile.lock
+/media
+db.sqlite3
+env/
+venv/
+*.env
+/staticfiles
+/uploads
+
+# Payment documentation files
+PAYMENT_ENDPOINTS.md
+PAYMENT_TESTING_GUIDE.md
+payment_integration_guide.md
+
+# Payments migrations (already covered by **/migrations/ above, but explicit)
+/payments/migrations/
+
+# Test scripts
+test_order_payment_flow.py
+# debug_order_payment.py
+test_supplier_endpoint.py
+TEST_SUPPLIER_ENDPOINT.md

@@ -1,0 +1,28 @@
+<!-- templates/email/support_reply.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Support Team Reply</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; background-color: white; padding: 20px; border-radius: 10px; margin: auto;">
+        <h2 style="color: #333;">Hello {{ user_name }},</h2>
+
+        <p style="font-size: 16px; color: #555;">
+            This is a response from the KEN support team regarding your recent inquiry.
+        </p>
+
+        <p style="background-color: #eef; padding: 15px; border-left: 4px solid #007BFF;">
+            {{ reply_text }}
+        </p>
+
+        <p style="font-size: 14px; color: #777; margin-top: 30px;">
+            If you need further assistance, feel free to contact us again.
+        </p>
+
+        <p style="margin-top: 40px;">Best regards,</p>
+        <p style="font-weight: bold;">KEN Support Team</p>
+    </div>
+</body>
+</html>

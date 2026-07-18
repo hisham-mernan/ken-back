@@ -1,0 +1,133 @@
+{
+  "success": false,
+  "status": "failed",
+  "transaction": {
+      "id": "6f84de69-b1e3-4395-9e9c-3b32e656792d",
+      "checkout_id": "9F3C518AACB4E4AAEA67AA2A995A982B.uat01-vm-tx01",
+      "merchant_transaction_id": "TXN_D71B3CD65C244C85",
+      "amount": "100.00",
+      "currency": "SAR",
+      "status": "failed",
+      "created_at": "2025-12-01T20:29:04.935348Z",
+      "updated_at": "2025-12-01T20:37:26.391815Z",
+      "verified_at": "2025-12-01T20:37:26.391450Z",
+      "booking_id": 1
+  },
+  "verification_data": {
+      "result": {
+          "code": "000.200.103",
+          "description": "checkout is pending"
+      },
+      "buildNumber": "619341ab33d086e0dcaea63f43a785aefea69a8e@2025-11-28 05:10:09 +0000",
+      "timestamp": "2025-12-01 20:37:26+0000",
+      "ndc": "9F3C518AACB4E4AAEA67AA2A995A982B.uat01-vm-tx01",
+      "id": "9F3C518AACB4E4AAEA67AA2A995A982B.uat01-vm-tx01",
+      "amount": "100.00",
+      "currency": "SAR",
+      "paymentType": "DB",
+      "config": {
+          "brandConfig": {
+              "brands": [],
+              "overrideShopBrands": false,
+              "activateBrands": false
+          },
+          "registrations": [],
+          "detectIp": true,
+          "oppCnpSaqa": false,
+          "redShieldDeviceIdInMsdkActive": false,
+          "cnpCofDefaultSi": false,
+          "cnpCofStoreCardForFutureCitOnly": false,
+          "cnpUpdateEntireCartAndPayments": false,
+          "cnpAdditionalWidgetLogging": false,
+          "overrideHolder": false,
+          "threeDSecureV2Config": {
+              "visaThreeDV2": true,
+              "masterThreeDV2": true,
+              "amexThreeDV2": true,
+              "bcmcThreeDV2": true,
+              "dinersThreeDV2": true,
+              "jcbThreeDV2": true,
+              "cartebancaireThreeDV2": true,
+              "dankortThreeDV2": false,
+              "cashlinkmaltaThreeDV2": true,
+              "unionPayThreeDV2": true,
+              "madaThreeDV2": false,
+              "msdkFlow": "app",
+              "populateBrowserParams": true
+          },
+          "environmentConfig": {
+              "url": "https://eu-test.oppwa.com",
+              "defaultPaymentMode": "INTEGRATOR_TEST",
+              "cacheVersion": "0e6e480181950a67bd8eda9769cadac6"
+          },
+          "workflowSpecificConfig": {
+              "kountConfig": {
+                  "active": false,
+                  "merchantId": "",
+                  "sessionId": "",
+                  "baseUrl": "https://tst.kaptcha.com/"
+              },
+              "cyberSourceRiskManagementConfig": {
+                  "active": false,
+                  "merchantId": "",
+                  "organizationId": "",
+                  "collectDeviceId": false,
+                  "sessionId": "",
+                  "srcUrl": ""
+              },
+              "iovationConfig": {
+                  "active": false,
+                  "msdkActive": false
+              },
+              "affirmConfig": {
+                  "active": false,
+                  "publicKey": ""
+              },
+              "forterConfig": {
+                  "active": false,
+                  "siteId": "",
+                  "sessionId": "9F3C518AACB4E4AAEA67AA2A995A982B.uat01-vm-tx01"
+              },
+              "klarnaConfig": {
+                  "redirectIfWidgetCloses": true
+              }
+          },
+          "klarnaMerchantIds": [],
+          "paypalRestConfig": {},
+          "msdkConfig": {
+              "ui": "native"
+          },
+          "sendShippingBillingKlarnaClientSide": false,
+          "merchant": {},
+          "createRegistration": false,
+          "amazonpayConfig": {},
+          "clickToPayConfig": {
+              "checkoutExperience": "NONE",
+              "dpaBillingPreference": "NONE",
+              "dpaShippingPreference": "NONE",
+              "dpaAcceptedBillingCountries": [],
+              "dpaAcceptedShippingCountries": [],
+              "dynamicDataType": [
+                  "CARD_APPLICATION_CRYPTOGRAM_SHORT_FORM"
+              ],
+              "consumerNameRequested": false,
+              "consumerEmailAddressRequested": false,
+              "consumerPhoneNumberRequested": false
+          },
+          "pazeConfig": {},
+          "b4SepaAsyncWorkflow": false,
+          "registrationPopulated": false,
+          "visaInstallmentConfig": {
+              "enable": false
+          },
+          "standaloneThreeDSecure": false,
+          "aciInstantPayCountry": "US",
+          "enableTokenVaultUsage": true,
+          "tokenVaultConfig": {}
+      },
+      "endpoint": "/payment",
+      "resourcePath": "/v1/checkouts/9F3C518AACB4E4AAEA67AA2A995A982B.uat01-vm-tx01/payment",
+      "customerEmail": "customer@example.com",
+      "lifetime": 1800
+  }
+}

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Cancellation Request Refused</title>
+</head>
+<body>
+    <h2>Hello {{ user.full_name }},</h2>
+
+    <p>We received your request to cancel Booking #{{ booking.id }}.</p>
+
+    <p>Unfortunately, your cancellation request has been <strong>refused</strong> by our team.</p>
+
+    <p><strong>Reason:</strong></p>
+    <blockquote style="border-left: 4px solid #f44336; padding-left: 15px; color: #d32f2f;">
+        {{ reason }}
+    </blockquote>
+
+    <p>If you have any questions or would like to discuss this further, please feel free to contact our support team.</p>
+
+    <a href="https://{{ domain }}/contact/" style="
+        display: inline-block;
+        background-color: #f44336;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+    ">
+        Contact Support
+    </a>
+
+    <p>Thank you for your understanding.<br/>KEN Team</p>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>New Order Paid - KEN</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; background-color: white; padding: 20px; border-radius: 10px; margin: auto;">
+        <h2 style="color: #333;">New order paid</h2>
+
+        <p style="font-size: 16px; color: #555;">
+            A new order has been placed and paid.
+        </p>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr style="background-color: #f8f9fa;">
+                <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Booking ID</strong></td>
+                <td style="padding: 10px; border: 1px solid #dee2e6;">#{{ booking.id }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Customer</strong></td>
+                <td style="padding: 10px; border: 1px solid #dee2e6;">{{ booking.user.full_name }} ({{ booking.user.email }})</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Hut</strong></td>
+                <td style="padding: 10px; border: 1px solid #dee2e6;">{{ booking.hut.title|default:"—" }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Total</strong></td>
+                <td style="padding: 10px; border: 1px solid #dee2e6;">{{ booking.total_price }} SAR</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Date</strong></td>
+                <td style="padding: 10px; border: 1px solid #dee2e6;">{{ main_date|default:"—" }}</td>
+            </tr>
+        </table>
+
+        <p style="font-size: 14px; color: #777;">KEN – order notification</p>
+    </div>
+</body>
+</html>

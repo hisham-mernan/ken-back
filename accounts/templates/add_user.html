@@ -1,0 +1,27 @@
+<!-- templates/confirmation_email.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to KEN Team</title>
+</head>
+<body style="font-family: Arial, sans-serif;">
+    <h1>Welcome to KEN, {{ user.full_name }}!</h1>
+
+    <p>We're excited to let you know that you have been successfully <strong>added to the KEN platform</strong> by the admin team.</p>
+
+    <p>Your login email is: <strong>{{ user.email }}</strong></p>
+    <p>Your temporary password is: <strong>{{ password }}</strong></p>
+
+   
+    
+
+    <p>You can log in here: <a href="{{ login_url }}">{{ login_url }}</a></p>
+
+    <p>If you face any issues, feel free to reach out to our support team.</p>
+
+    <br>
+    <p>Best wishes,</p>
+    <p><strong>KEN Team</strong></p>
+</body>
+</html>

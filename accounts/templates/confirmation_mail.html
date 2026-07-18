@@ -1,0 +1,16 @@
+<!-- templates/confirmation_email.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confirmation Email</title>
+</head>
+<body>
+<h1></h1>
+     <h1>Welcome to KEN, {{ user.email}}!</h1> 
+    <p>Please confirm your email address by entering the following code:</p>
+    <h2>{{ otp}}</h2>
+     <p>if the otp page didn't automatically open use this <a href="{{ domain }}">link</a></p> 
+    <p>best wishes ,</p>
+    <p>KEN Team</p>
+</body>
+</html>
