@@ -271,6 +271,12 @@ if os.getenv("VERCEL") or os.getenv("DATABASE_URL"):
 else:
     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+try:
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
+    os.makedirs(os.path.join(MEDIA_ROOT, "uploads/services/hut_image"), exist_ok=True)
+except Exception:
+    pass
+
 # Enable WhiteNoise to serve compressed files
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 

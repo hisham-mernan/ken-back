@@ -1885,6 +1885,11 @@ class HutCreateView(APIView):
         if "main_image" in request.FILES:
             data["main_image"] = request.FILES["main_image"]
 
+        try:
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, "uploads/services/hut_image"), exist_ok=True)
+        except Exception:
+            pass
+
         serializer = HutSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             try:
