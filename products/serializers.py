@@ -79,9 +79,22 @@ class LocationSerializer(serializers.ModelSerializer):
         
 
 class HutImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = HutImages
-        fields = ['id', 'image']  # Add other fields if needed
+        fields = ['id', 'image']
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        try:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        except Exception:
+            return f"/media/{obj.image}"
 
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -127,7 +140,7 @@ class HutSerializer(serializers.ModelSerializer):
     location = LocationSerializer()
     promocode = PromoCodeSerializer(many=True, read_only=True)
     images = HutImageSerializer(many=True, read_only=True)
-    main_image = serializers.ImageField(required=False)
+    main_image = serializers.SerializerMethodField()
     available_dates = serializers.SerializerMethodField()
     main_services = serializers.SerializerMethodField()
     extra_services = serializers.SerializerMethodField()
@@ -138,6 +151,17 @@ class HutSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hut
         fields = '__all__'
+
+    def get_main_image(self, obj):
+        if not obj.main_image:
+            return None
+        try:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.main_image.url)
+            return obj.main_image.url
+        except Exception:
+            return f"/media/{obj.main_image}"
 
     def create(self, validated_data):
         location_data = validated_data.pop('location', None)
