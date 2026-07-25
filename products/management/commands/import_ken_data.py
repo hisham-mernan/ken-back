@@ -254,4 +254,29 @@ class Command(BaseCommand):
         self.stdout.write("Imported Events")
 
         conn.close()
+
+        # Ensure Admin User exists
+        try:
+            from accounts.models import User
+            admin_user, created = User.objects.get_or_create(
+                email='admin@kenluxuryreef.com',
+                defaults={
+                    'first_name': 'Admin',
+                    'last_name': 'Ken',
+                    'role': 'admin',
+                    'is_staff': True,
+                    'is_superuser': True,
+                    'is_active': True
+                }
+            )
+            admin_user.set_password('admin123')
+            admin_user.role = 'admin'
+            admin_user.is_staff = True
+            admin_user.is_superuser = True
+            admin_user.is_active = True
+            admin_user.save()
+            self.stdout.write("Ensured admin user admin@kenluxuryreef.com")
+        except Exception as e:
+            self.stdout.write(f"Admin user creation warning: {e}")
+
         self.stdout.write(self.style.SUCCESS("All ken_data imported successfully!"))
