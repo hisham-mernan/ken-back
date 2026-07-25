@@ -1,0 +1,4 @@
+ken_data/
+media/
+staticfiles/
+*.sqlite3
