@@ -177,28 +177,20 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # Database Configuration
-# Fallback to SQLite but support PostgreSQL (Supabase/Neon) via env vars
+# Support PostgreSQL (Supabase/Neon) via DATABASE_URL or fallback to SQLite
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    try:
-        import dj_database_url
-        DATABASES = {
-            "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
-        }
-    except ImportError:
-        from urllib.parse import urlparse
-        url = urlparse(DATABASE_URL)
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": url.path[1:],
-                "USER": url.username,
-                "PASSWORD": url.password,
-                "HOST": url.hostname,
-                "PORT": url.port or 5432,
-            }
-        }
+    import dj_database_url
+    # Ensure SSL mode is enabled for Supabase / Neon / remote PostgreSQL
+    ssl_require = "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=ssl_require
+        )
+    }
 elif os.getenv("DATABASE_ENGINE") == "django.db.backends.postgresql":
     DATABASES = {
         "default": {
@@ -217,6 +209,27 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 
 
 
