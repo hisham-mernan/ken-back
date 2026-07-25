@@ -262,8 +262,8 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Media files for uploads (Use /tmp on Vercel serverless read-only filesystem)
-MEDIA_URL = "/media/"
+# Media files for uploads (Use Supabase CDN by default, /tmp for local filesystem)
+MEDIA_URL = os.getenv("MEDIA_URL", "https://didujlgaqnfziazqooxo.supabase.co/storage/v1/object/public/media/")
 if os.getenv("VERCEL") or os.getenv("DATABASE_URL"):
     MEDIA_ROOT = "/tmp/media"
 else:
