@@ -5,5 +5,8 @@ python3 -m pip install -r requirements.txt
 # Apply database migrations
 python3 manage.py migrate --noinput
 
+# Import ken_data into live database
+python3 manage.py import_ken_data
+
 # Collect static files
 python3 manage.py collectstatic --noinput --clear
