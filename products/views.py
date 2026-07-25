@@ -1871,7 +1871,7 @@ class HutCreateView(APIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Hut.objects.all().order_by('-id')
-        serializer = HutListAdminSerializer(queryset, many=True, context={'request': request})
+        serializer = HutSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
