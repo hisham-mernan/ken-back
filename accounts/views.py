@@ -98,6 +98,11 @@ class LoginApiView(generics.GenericAPIView):
          user.role = 'admin'
          user.save(update_fields=['role'])
      token=generate_jwt_token(user)
+     try:
+         avatar_url = user.avatar.url if user.avatar else None
+     except Exception:
+         avatar_url = f"/media/{user.avatar}" if user.avatar else None
+
      return Response(
                 {
                     "token":token,
@@ -105,7 +110,7 @@ class LoginApiView(generics.GenericAPIView):
                     "role":user.role,
                     "email":user.email,
                     "full_name":user.full_name,
-                    "avatar":user.avatar.url if user.avatar else None
+                    "avatar":avatar_url
                 },status=status.HTTP_200_OK)
        
 
