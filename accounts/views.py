@@ -91,27 +91,31 @@ class LoginApiView(generics.GenericAPIView):
     permission_classes = [AllowAny] 
    
     def post(self,request,*args,**kwargs):
-     serializer = self.get_serializer(data=request.data)
-     serializer.is_valid(raise_exception=True)
-     user=serializer.validated_data['user']
-     if (user.is_superuser or user.is_staff) and not user.role:
-         user.role = 'admin'
-         user.save(update_fields=['role'])
-     token=generate_jwt_token(user)
-     try:
-         avatar_url = user.avatar.url if user.avatar else None
-     except Exception:
-         avatar_url = f"/media/{user.avatar}" if user.avatar else None
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user=serializer.validated_data['user']
+            if (user.is_superuser or user.is_staff) and not user.role:
+                user.role = 'admin'
+                user.save(update_fields=['role'])
+            token=generate_jwt_token(user)
+            try:
+                avatar_url = user.avatar.url if user.avatar else None
+            except Exception:
+                avatar_url = f"/media/{user.avatar}" if user.avatar else None
 
-     return Response(
-                {
-                    "token":token,
-                    "id":user.id,
-                    "role":user.role,
-                    "email":user.email,
-                    "full_name":user.full_name,
-                    "avatar":avatar_url
-                },status=status.HTTP_200_OK)
+            return Response(
+                       {
+                           "token":token,
+                           "id":user.id,
+                           "role":user.role,
+                           "email":user.email,
+                           "full_name":user.full_name,
+                           "avatar":avatar_url
+                       },status=status.HTTP_200_OK)
+        except Exception as e:
+            import traceback
+            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
        
 
 # class ResendOTPView(APIView):
