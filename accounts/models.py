@@ -26,7 +26,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, email, password=None):
         user = self.create_user(email,password=password,)
-        user.is_admin = True
+        user.role = 'admin'
         user.is_superuser = True
         user.is_staff = True
         user.is_verfied = True  # Superusers are automatically verified

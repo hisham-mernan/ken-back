@@ -22,7 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
         return email
 
     def validate_phone(self, value):
-        if not value.startswith('+966') :
+        if not value.startswith('+966') and not value.startswith('+02'):
           raise serializers.ValidationError("Phone number must start with +966 or +02.")
         user_id = self.instance.id if self.instance else None
         
@@ -92,8 +92,8 @@ class LoginSerializer(serializers.Serializer):          # Plain Serializer is fi
         if not check_password(password, user.password):
             raise serializers.ValidationError({"password": "Password is not correct."})
 
-        # 3. Is the account verified? (Superusers can bypass verification)
-        if not user.is_superuser and not getattr(user, "is_verfied", False):
+        # 3. Is the account verified? (Superusers, staff, and admin role can bypass verification)
+        if not user.is_superuser and not user.is_staff and user.role != "admin" and not getattr(user, "is_verfied", False):
             raise serializers.ValidationError("This user is not verified.")
 
         # 4. Stick the user on the validated data and return it

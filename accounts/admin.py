@@ -28,10 +28,19 @@ class UserAdmin(BaseUserAdmin):
 
 
 # Unregister SimpleJWT Token models
-admin.site.unregister(OutstandingToken)
-admin.site.unregister(BlacklistedToken)
+try:
+    admin.site.unregister(OutstandingToken)
+except admin.sites.NotRegistered:
+    pass
+
+try:
+    admin.site.unregister(BlacklistedToken)
+except admin.sites.NotRegistered:
+    pass
+
 admin.site.register(Partners)
 admin.site.register(Support)
 admin.site.register(WebRating)
 admin.site.register(WebsiteRate)
 admin.site.register(Notification)
+

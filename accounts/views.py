@@ -63,19 +63,21 @@ class UserRegistrationView(generics.CreateAPIView):
         user.otp_created_at = timezone.now()
         user.save()
 
-        Timer(60.0, clear_otp, [user]).start()
+        Timer(300.0, clear_otp, [user]).start()
 
         html_content = render_to_string('confirmation_mail.html', {
-       
             'otp': otp,
             'domain': settings.FRONTEND_BASE_URL,
         })
 
-      
-        send_email(user.email, "KEN OTP Confirmation", html_content)
-        token = generate_jwt_token(user)
-        print(token)
+        import threading
+        threading.Thread(
+            target=send_email,
+            args=(user.email, "KEN OTP Confirmation", html_content),
+            daemon=True
+        ).start()
 
+        token = generate_jwt_token(user)
 
         return Response({
             'token': token,
@@ -92,6 +94,9 @@ class LoginApiView(generics.GenericAPIView):
      serializer = self.get_serializer(data=request.data)
      serializer.is_valid(raise_exception=True)
      user=serializer.validated_data['user']
+     if (user.is_superuser or user.is_staff) and not user.role:
+         user.role = 'admin'
+         user.save(update_fields=['role'])
      token=generate_jwt_token(user)
      return Response(
                 {
@@ -220,7 +225,7 @@ class ResendOTPView(APIView):
         user.otp_created_at = timezone.now()
         user.save(update_fields=["otp_secret", "otp_created_at"])
 
-        Timer(60.0, clear_otp, [user]).start()
+        Timer(300.0, clear_otp, [user]).start()
 # class VerifyOtpView(APIView):
 #     permission_classes = [AllowAny]
 
@@ -273,7 +278,7 @@ class VerifyOtpView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        forget       = request.query_params.get("forget") is not None
+        forget       = request.query_params.get("forget", "").lower() == "true"
         change_email = request.query_params.get("change_email", "").lower() == "true"
 
         # ------------------------------------------------------------------
