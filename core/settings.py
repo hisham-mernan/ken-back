@@ -264,6 +264,13 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
+# Media files for uploads (Use /tmp on Vercel serverless read-only filesystem)
+MEDIA_URL = "/media/"
+if os.getenv("VERCEL") or os.getenv("DATABASE_URL"):
+    MEDIA_ROOT = "/tmp/media"
+else:
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 # Enable WhiteNoise to serve compressed files
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 

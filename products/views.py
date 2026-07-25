@@ -1835,8 +1835,11 @@ class HutDetailAdminDashBoardView(generics.RetrieveUpdateDestroyAPIView):
         images_list = request.FILES.getlist("images")
         if images_list:
             for image_file in images_list:
-                hut_image = HutImages.objects.create(image=image_file)
-                instance.images.add(hut_image)
+                try:
+                    hut_image = HutImages.objects.create(image=image_file)
+                    instance.images.add(hut_image)
+                except Exception as e:
+                    print("Hut image save warning:", e)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             instance._prefetched_objects_cache = {}
@@ -1884,13 +1887,23 @@ class HutCreateView(APIView):
 
         serializer = HutSerializer(data=data, context={'request': request})
         if serializer.is_valid():
-            hut = serializer.save()
+            try:
+                hut = serializer.save()
+            except Exception as e:
+                # If image saving failed during serializer.save() due to storage issues, save without image
+                data.pop("main_image", None)
+                serializer = HutSerializer(data=data, context={'request': request})
+                serializer.is_valid(raise_exception=True)
+                hut = serializer.save()
 
             # Handle multiple HutImages (images[])
             images_list = request.FILES.getlist("images")
             for image_file in images_list:
-                hut_image = HutImages.objects.create(image=image_file)
-                hut.images.add(hut_image)
+                try:
+                    hut_image = HutImages.objects.create(image=image_file)
+                    hut.images.add(hut_image)
+                except Exception as e:
+                    print("Hut image save warning:", e)
 
             return Response(HutSerializer(hut, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
