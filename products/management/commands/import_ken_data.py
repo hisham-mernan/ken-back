@@ -72,10 +72,18 @@ class Command(BaseCommand):
         Event.objects.all().delete()
         Services.objects.all().delete()
 
+        def make_cdn_url(img_path):
+            if not img_path:
+                return img_path
+            if str(img_path).startswith("http"):
+                return img_path
+            clean_path = str(img_path).lstrip("/")
+            return f"https://didujlgaqnfziazqooxo.supabase.co/storage/v1/object/public/media/{clean_path}"
+
         # 5. Import Icons
         cur.execute("SELECT id, image FROM products_icon")
         for row in cur.fetchall():
-            Icon.objects.create(id=row[0], image=row[1])
+            Icon.objects.create(id=row[0], image=make_cdn_url(row[1]))
         self.stdout.write("Imported Icons")
 
         # 6. Import Locations
@@ -104,7 +112,7 @@ class Command(BaseCommand):
         # 8. Import HutImages
         cur.execute("SELECT id, image FROM products_hutimages")
         for row in cur.fetchall():
-            HutImages.objects.create(id=row[0], image=row[1])
+            HutImages.objects.create(id=row[0], image=make_cdn_url(row[1]))
         self.stdout.write("Imported HutImages")
 
         # 9. Import Huts
@@ -124,7 +132,7 @@ class Command(BaseCommand):
                 description_ar=row[4],
                 size=row[5],
                 rate=row[6] or 0.00,
-                main_image=row[8],
+                main_image=make_cdn_url(row[8]),
                 max_kids_num=row[9],
                 bedrooms_num=row[10],
                 bathrooms_num=row[11],
@@ -209,7 +217,7 @@ class Command(BaseCommand):
             hut = Hut.objects.filter(id=row[12]).first() if row[12] else None
             Services.objects.create(
                 id=row[0],
-                image=row[1],
+                image=make_cdn_url(row[1]),
                 title=row[2],
                 title_ar=row[3],
                 description=row[4],
@@ -242,7 +250,7 @@ class Command(BaseCommand):
                 description_ar=row[4],
                 rate=row[5] or 0.00,
                 capacity=row[6],
-                image=row[8],
+                image=make_cdn_url(row[8]),
                 min_purchasable_quantity=row[9],
                 max_purchasable_quantity=row[10],
                 is_active=bool(row[11]),

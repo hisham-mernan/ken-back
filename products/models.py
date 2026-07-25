@@ -49,7 +49,7 @@ class AvailableDateService(models.Model):
     
     
 class HutIncludes(models.Model):
-    icon = models.ImageField(null=True, blank=True, upload_to=icons)
+    icon = models.ImageField(null=True, blank=True, upload_to=icons, max_length=500)
     hut = models.ForeignKey("Hut", on_delete=models.CASCADE, related_name="includes")
     description = models.TextField()
     description_ar = models.TextField(null=True,blank=True)
@@ -57,7 +57,7 @@ class HutIncludes(models.Model):
     
 
 class HutImages(models.Model):
-    image = models.ImageField(upload_to=hut_image, null=True, blank=True)
+    image = models.ImageField(upload_to=hut_image, null=True, blank=True, max_length=500)
 
    
 
@@ -87,7 +87,7 @@ class Location(models.Model):
 class Note(models.Model):
     text = models.TextField()
     text_ar = models.TextField(null=True,blank=True)
-    icon=models.ImageField(null=True, blank=True, upload_to=icons)
+    icon=models.ImageField(null=True, blank=True, upload_to=icons, max_length=500)
  
 
 class PromoCode(models.Model):
@@ -109,7 +109,7 @@ class Hut(models.Model):
     # available_dates = models.ManyToManyField(AvailableDate, related_name='huts')
     created_at = models.DateTimeField(auto_now_add=True)
     images=models.ManyToManyField(HutImages,null=True,blank=True)
-    main_image= models.ImageField(upload_to=hut_image, null=True, blank=True)
+    main_image= models.ImageField(upload_to=hut_image, null=True, blank=True, max_length=500)
     location=models.ForeignKey(Location, on_delete=models.CASCADE,null=True,blank=True)
     max_kids_num=models.IntegerField(null=True, blank=True,)
     bedrooms_num=models.IntegerField(null=True, blank=True,)
@@ -151,7 +151,7 @@ class Event(models.Model):
     available_dates = models.ManyToManyField(AvailableDateEvent, related_name='events',null=True,blank=True)
     capacity=models.IntegerField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    image = models.ImageField(upload_to=event_image, null=True, blank=True)
+    image = models.ImageField(upload_to=event_image, null=True, blank=True, max_length=500)
     location=models.ForeignKey(Location, on_delete=models.CASCADE,null=True,blank=True)
     min_purchasable_quantity = models.IntegerField(default=1, null=True, blank=True)
     max_purchasable_quantity = models.IntegerField(default=10, null=True, blank=True)
@@ -164,7 +164,7 @@ class Event(models.Model):
 
 class KenSpecialItems(models.Model):
     supplier=models.ForeignKey(User, on_delete=models.CASCADE,related_name='ken_items',null=True,blank=True)
-    image = models.ImageField(upload_to=event_image, null=True, blank=True)
+    image = models.ImageField(upload_to=event_image, null=True, blank=True, max_length=500)
     title = models.CharField(max_length=255)
     title_ar = models.CharField(max_length=255,null=True,blank=True)
     # description = models.TextField()
@@ -181,10 +181,9 @@ class KenSpecialItems(models.Model):
     
     
 
-
 class Services(models.Model):
     supplier=models.ForeignKey(User, on_delete=models.CASCADE,related_name='services')
-    image = models.ImageField(upload_to=event_image, null=True, blank=True)
+    image = models.ImageField(upload_to=event_image, null=True, blank=True, max_length=500)
     title = models.CharField(max_length=255)
     title_ar = models.CharField(max_length=255,null=True,blank=True)
     description = models.TextField()
@@ -228,7 +227,7 @@ class HutRating(models.Model):
         self.hut.save()
         
         
-
+    
 
 
 class Booking(models.Model):
@@ -349,7 +348,7 @@ class DaftraInvoice(models.Model):
     
 
 class Icon(models.Model):
-    image = models.ImageField(upload_to=icons)
+    image = models.ImageField(upload_to=icons, max_length=500)
 
     def __str__(self):
         return f"Icon {self.id}"

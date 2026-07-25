@@ -88,13 +88,16 @@ class HutImageSerializer(serializers.ModelSerializer):
     def get_image(self, obj):
         if not obj.image:
             return None
+        val = str(obj.image)
+        if val.startswith("http://") or val.startswith("https://"):
+            return val
         try:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         except Exception:
-            return f"/media/{obj.image}"
+            return f"/media/{val}"
 
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -155,13 +158,16 @@ class HutSerializer(serializers.ModelSerializer):
     def get_main_image(self, obj):
         if not obj.main_image:
             return None
+        val = str(obj.main_image)
+        if val.startswith("http://") or val.startswith("https://"):
+            return val
         try:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.main_image.url)
             return obj.main_image.url
         except Exception:
-            return f"/media/{obj.main_image}"
+            return f"/media/{val}"
 
     def create(self, validated_data):
         location_data = validated_data.pop('location', None)
