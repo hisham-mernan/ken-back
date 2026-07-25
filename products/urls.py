@@ -69,6 +69,7 @@ urlpatterns = [
     path("huts/promocodes/<int:hut_id>/", PromoCodeListCreateView.as_view(), name="hut-promocode-list-create"),
     path("promocodes/<int:id>/", PromoCodeDetailView.as_view(), name="promocode-detail"),
     path('admin/huts/services-activities/<int:hut_id>/', HutServicesActivitiesBulkUpdateAPIView.as_view()),
+    path('admin/import-ken-data/', ImportKenDataView.as_view()),
     path('hut-dropdown/', HutDropDownListView.as_view(), name='hut-dropdown'),
 
     

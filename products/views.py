@@ -1849,6 +1849,22 @@ class HutDetailAdminDashBoardView(generics.RetrieveUpdateDestroyAPIView):
 
 
 
+from django.core.management import call_command
+
+class ImportKenDataView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            call_command('import_ken_data')
+            return Response({"status": "success", "message": "ken_data imported successfully!"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": "error", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+
 class HutCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     permission_classes = [IsAdminForUnsafeMethods]  # Your custom permission class
