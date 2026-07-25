@@ -182,13 +182,11 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
     import dj_database_url
-    # Ensure SSL mode is enabled for Supabase / Neon / remote PostgreSQL
-    ssl_require = "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL
     DATABASES = {
         "default": dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
-            ssl_require=ssl_require
+            ssl_require=False
         )
     }
 elif os.getenv("DATABASE_ENGINE") == "django.db.backends.postgresql":
