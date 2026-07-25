@@ -140,8 +140,11 @@ class HutSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def create(self, validated_data):
-        location_data = validated_data.pop('location')
-        location = Location.objects.create(**location_data)
+        location_data = validated_data.pop('location', None)
+        if location_data:
+            location = Location.objects.create(**location_data)
+        else:
+            location = None
         hut = Hut.objects.create(location=location, **validated_data)
         return hut
 

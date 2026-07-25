@@ -1796,9 +1796,37 @@ class EventListCreateView(generics.ListCreateAPIView):
 
 
 class HutDetailAdminDashBoardView(generics.RetrieveUpdateDestroyAPIView):
-    queryset =Hut.objects.all()
+    queryset = Hut.objects.all()
     serializer_class = HutAdminDetailsDashboardSerializer
     permission_classes = [IsAdmin] 
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        data = request.data.dict() if hasattr(request.data, 'dict') else dict(request.data)
+        location_data = {}
+        keys_to_remove = []
+        for key, value in list(data.items()):
+            if key.startswith("location."):
+                loc_key = key.split("location.")[1]
+                location_data[loc_key] = value
+                keys_to_remove.append(key)
+
+        for k in keys_to_remove:
+            data.pop(k, None)
+
+        if location_data:
+            data["location"] = location_data
+
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
 
 
 
@@ -1808,20 +1836,33 @@ class HutCreateView(APIView):
     permission_classes = [IsAdminForUnsafeMethods]  # Your custom permission class
 
     def post(self, request, *args, **kwargs):
-        serializer = HutSerializer(data=request.data)
+        data = request.data.dict() if hasattr(request.data, 'dict') else dict(request.data)
+
+        # Handle dotted FormData keys like location.latitude, location.longitude, location.address
+        location_data = {}
+        keys_to_remove = []
+        for key, value in list(data.items()):
+            if key.startswith("location."):
+                loc_key = key.split("location.")[1]
+                location_data[loc_key] = value
+                keys_to_remove.append(key)
+
+        for k in keys_to_remove:
+            data.pop(k, None)
+
+        if location_data:
+            data["location"] = location_data
+
+        serializer = HutSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             hut = serializer.save()
 
-            
-
-            # 2. Handle multiple HutImages (images[])
+            # Handle multiple HutImages (images[])
             for image_file in request.FILES.getlist("images"):
                 hut_image = HutImages.objects.create(image=image_file)
                 hut.images.add(hut_image)
 
-               
-
-            return Response(HutSerializer(hut).data, status=status.HTTP_201_CREATED)
+            return Response(HutSerializer(hut, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
