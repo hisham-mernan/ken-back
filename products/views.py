@@ -1870,9 +1870,13 @@ class HutCreateView(APIView):
     permission_classes = [IsAdminForUnsafeMethods]  # Your custom permission class
 
     def get(self, request, *args, **kwargs):
-        queryset = Hut.objects.all().order_by('-id')
-        serializer = HutSerializer(queryset, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            queryset = Hut.objects.all().order_by('-id')
+            serializer = HutSerializer(queryset, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            import traceback
+            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request, *args, **kwargs):
         data = {}
