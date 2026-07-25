@@ -200,11 +200,25 @@ class HutAdminDetailsDashboardSerializer(serializers.ModelSerializer):
     extra_services = serializers.SerializerMethodField()
     promocode = PromoCodeSerializer(many=True, read_only=True)  
     activities = serializers.SerializerMethodField()
-    
 
     class Meta:
         model = Hut
         fields = '__all__'
+
+    def update(self, instance, validated_data):
+        location_data = validated_data.pop('location', None)
+        if location_data:
+            if instance.location:
+                for attr, value in location_data.items():
+                    setattr(instance.location, attr, value)
+                instance.location.save()
+            else:
+                instance.location = Location.objects.create(**location_data)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
     
 
     

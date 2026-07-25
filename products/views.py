@@ -1801,16 +1801,22 @@ class HutDetailAdminDashBoardView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdmin] 
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop('partial', True)
         instance = self.get_object()
 
-        data = request.data.dict() if hasattr(request.data, 'dict') else dict(request.data)
+        data = {}
+        for key in request.data:
+            val = request.data.get(key)
+            if val is not None and not hasattr(val, 'read'):
+                data[key] = val
+
         location_data = {}
         keys_to_remove = []
         for key, value in list(data.items()):
             if key.startswith("location."):
                 loc_key = key.split("location.")[1]
-                location_data[loc_key] = value
+                if value not in ("", "null", "undefined", None):
+                    location_data[loc_key] = value
                 keys_to_remove.append(key)
 
         for k in keys_to_remove:
@@ -1819,9 +1825,18 @@ class HutDetailAdminDashBoardView(generics.RetrieveUpdateDestroyAPIView):
         if location_data:
             data["location"] = location_data
 
+        if "main_image" in request.FILES:
+            data["main_image"] = request.FILES["main_image"]
+
         serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
+        images_list = request.FILES.getlist("images")
+        if images_list:
+            for image_file in images_list:
+                hut_image = HutImages.objects.create(image=image_file)
+                instance.images.add(hut_image)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             instance._prefetched_objects_cache = {}
@@ -1841,15 +1856,19 @@ class HutCreateView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
-        data = request.data.dict() if hasattr(request.data, 'dict') else dict(request.data)
+        data = {}
+        for key in request.data:
+            val = request.data.get(key)
+            if val is not None and not hasattr(val, 'read'):
+                data[key] = val
 
-        # Handle dotted FormData keys like location.latitude, location.longitude, location.address
         location_data = {}
         keys_to_remove = []
         for key, value in list(data.items()):
             if key.startswith("location."):
                 loc_key = key.split("location.")[1]
-                location_data[loc_key] = value
+                if value not in ("", "null", "undefined", None):
+                    location_data[loc_key] = value
                 keys_to_remove.append(key)
 
         for k in keys_to_remove:
@@ -1857,13 +1876,19 @@ class HutCreateView(APIView):
 
         if location_data:
             data["location"] = location_data
+        elif "location" not in data:
+            data["location"] = None
+
+        if "main_image" in request.FILES:
+            data["main_image"] = request.FILES["main_image"]
 
         serializer = HutSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             hut = serializer.save()
 
             # Handle multiple HutImages (images[])
-            for image_file in request.FILES.getlist("images"):
+            images_list = request.FILES.getlist("images")
+            for image_file in images_list:
                 hut_image = HutImages.objects.create(image=image_file)
                 hut.images.add(hut_image)
 
