@@ -1835,6 +1835,11 @@ class HutCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     permission_classes = [IsAdminForUnsafeMethods]  # Your custom permission class
 
+    def get(self, request, *args, **kwargs):
+        queryset = Hut.objects.all().order_by('-id')
+        serializer = HutListAdminSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request, *args, **kwargs):
         data = request.data.dict() if hasattr(request.data, 'dict') else dict(request.data)
 
