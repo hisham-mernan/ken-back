@@ -1,15 +1,17 @@
 import os
 import shutil
 import sqlite3
+from datetime import date, timedelta
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from products.models import (
     Hut, Location, AvailableDateRanges, HutImages, PromoCode,
-    HutMainService, HutActivity, Icon, Event, Services, EventInclude, EventNote, HutRating
+    HutMainService, HutActivity, Icon, Event, Services, EventInclude, EventNote, HutRating,
+    AvailableDateEvent, AvailableDateService
 )
 
 class Command(BaseCommand):
-    help = "Import data from ken_data/db.sqlite3 into current database and replace existing huts data"
+    help = "Import data from ken_data/db.sqlite3 into current database and ensure availability until 2026/12/31"
 
     def handle(self, *args, **options):
         # 1. Locate ken_data directory
@@ -57,11 +59,13 @@ class Command(BaseCommand):
         cur = conn.cursor()
 
         # 4. Clear current huts and related data from current database
-        self.stdout.write("Deleting existing huts data...")
+        self.stdout.write("Deleting existing huts and events data...")
         HutRating.objects.all().delete()
         HutActivity.objects.all().delete()
         HutMainService.objects.all().delete()
         AvailableDateRanges.objects.all().delete()
+        AvailableDateEvent.objects.all().delete()
+        AvailableDateService.objects.all().delete()
         Hut.objects.all().delete()
         HutImages.objects.all().delete()
         PromoCode.objects.all().delete()
@@ -124,7 +128,7 @@ class Command(BaseCommand):
         """)
         for row in cur.fetchall():
             loc = Location.objects.filter(id=row[17]).first() if row[17] else None
-            hut = Hut.objects.create(
+            Hut.objects.create(
                 id=row[0],
                 title=row[1],
                 title_ar=row[2],
@@ -162,21 +166,34 @@ class Command(BaseCommand):
 
         self.stdout.write("Imported Huts and relationships")
 
-        # 12. Import AvailableDateRanges
+        # 12. Import AvailableDateRanges (Ensuring availability until 2026-12-31)
         cur.execute("SELECT id, date_from, date_to, price, promo_code, precentage, huts_id FROM products_availabledateranges")
+        imported_hut_ids = set()
         for row in cur.fetchall():
             hut = Hut.objects.filter(id=row[6]).first()
             if hut:
+                date_from = row[1] or "2026-01-01"
+                date_to = "2026-12-31"  # Available until 2026-12-31
                 AvailableDateRanges.objects.create(
                     id=row[0],
-                    date_from=row[1],
-                    date_to=row[2],
+                    date_from=date_from,
+                    date_to=date_to,
                     price=row[3],
                     promo_code=row[4],
                     precentage=row[5],
                     huts=hut
                 )
-        self.stdout.write("Imported AvailableDateRanges")
+                imported_hut_ids.add(hut.id)
+
+        for hut in Hut.objects.all():
+            if hut.id not in imported_hut_ids:
+                AvailableDateRanges.objects.create(
+                    date_from="2026-01-01",
+                    date_to="2026-12-31",
+                    price=1000.00,
+                    huts=hut
+                )
+        self.stdout.write("Imported AvailableDateRanges (Set available until 2026-12-31)")
 
         # 13. Import HutMainService
         cur.execute("SELECT id, description, description_ar, is_extra, hut_id, icon_id FROM products_hutmainservice")
@@ -207,7 +224,7 @@ class Command(BaseCommand):
                 )
         self.stdout.write("Imported HutActivities")
 
-        # 15. Import Services
+        # 15. Import Services & Service Available Dates
         cur.execute("""
             SELECT id, image, title, title_ar, description, description_ar, price, capacity,
                    min_purchasable_quantity, max_purchasable_quantity, is_active, is_delete, hut_id, supplier_id
@@ -215,7 +232,7 @@ class Command(BaseCommand):
         """)
         for row in cur.fetchall():
             hut = Hut.objects.filter(id=row[12]).first() if row[12] else None
-            Services.objects.create(
+            service = Services.objects.create(
                 id=row[0],
                 image=clean_rel_path(row[1]),
                 title=row[2],
@@ -231,9 +248,28 @@ class Command(BaseCommand):
                 hut=hut,
                 supplier_id=row[13]
             )
-        self.stdout.write("Imported Services")
 
-        # 16. Import Events
+            # Generate dates from 2026-01-01 to 2026-12-31 for services
+            start_d = date(2026, 1, 1)
+            end_d = date(2026, 12, 31)
+            curr = start_d
+            service_dates = []
+            while curr <= end_d:
+                avail_service_obj, _ = AvailableDateService.objects.get_or_create(
+                    date=curr,
+                    defaults={
+                        'price': service.price or 100.00,
+                        'capacity': service.capacity or 10,
+                        'is_active': True
+                    }
+                )
+                service_dates.append(avail_service_obj)
+                curr += timedelta(days=1)
+            service.available_dates.set(service_dates)
+
+        self.stdout.write("Imported Services and generated available dates until 2026-12-31")
+
+        # 16. Import Events & Event Available Dates
         cur.execute("""
             SELECT id, title, title_ar, description, description_ar, rate, capacity, created_at,
                    image, min_purchasable_quantity, max_purchasable_quantity, is_active, is_delete, hut_id, location_id, supplier_id
@@ -242,7 +278,7 @@ class Command(BaseCommand):
         for row in cur.fetchall():
             hut = Hut.objects.filter(id=row[13]).first() if row[13] else None
             loc = Location.objects.filter(id=row[14]).first() if row[14] else None
-            Event.objects.create(
+            event = Event.objects.create(
                 id=row[0],
                 title=row[1],
                 title_ar=row[2],
@@ -259,7 +295,59 @@ class Command(BaseCommand):
                 location=loc,
                 supplier_id=row[15]
             )
-        self.stdout.write("Imported Events")
+
+            # Generate dates from 2026-01-01 to 2026-12-31 for events
+            start_d = date(2026, 1, 1)
+            end_d = date(2026, 12, 31)
+            curr = start_d
+            event_dates = []
+            while curr <= end_d:
+                avail_date_obj, _ = AvailableDateEvent.objects.get_or_create(
+                    date=curr,
+                    defaults={
+                        'price': 1200.00,
+                        'capacity': event.capacity or 10,
+                        'is_active': True
+                    }
+                )
+                event_dates.append(avail_date_obj)
+                curr += timedelta(days=1)
+            event.available_dates.set(event_dates)
+
+        self.stdout.write("Imported Events and generated available dates until 2026-12-31")
+
+        # 17. Import EventIncludes & EventNotes
+        try:
+            cur.execute("SELECT id, description, description_ar, event_id, icon_id FROM products_eventinclude")
+            for row in cur.fetchall():
+                event = Event.objects.filter(id=row[3]).first()
+                icon = Icon.objects.filter(id=row[4]).first() if row[4] else None
+                if event:
+                    EventInclude.objects.create(
+                        id=row[0],
+                        description=row[1],
+                        description_ar=row[2],
+                        event=event,
+                        icon=icon
+                    )
+            self.stdout.write("Imported EventIncludes")
+        except Exception as e:
+            self.stdout.write(f"EventInclude import note: {e}")
+
+        try:
+            cur.execute("SELECT id, description, description_ar, event_id FROM products_eventnote")
+            for row in cur.fetchall():
+                event = Event.objects.filter(id=row[3]).first()
+                if event:
+                    EventNote.objects.create(
+                        id=row[0],
+                        description=row[1],
+                        description_ar=row[2],
+                        event=event
+                    )
+            self.stdout.write("Imported EventNotes")
+        except Exception as e:
+            self.stdout.write(f"EventNote import note: {e}")
 
         conn.close()
 
@@ -287,4 +375,4 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(f"Admin user creation warning: {e}")
 
-        self.stdout.write(self.style.SUCCESS("All ken_data imported successfully!"))
+        self.stdout.write(self.style.SUCCESS("All ken_data reuploaded successfully with availability until 2026/12/31!"))
