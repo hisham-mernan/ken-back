@@ -70,6 +70,9 @@ class TenPagePagination(PageNumberPagination):
 
 
 
+from django.core.cache import cache
+
+
 class HutListAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminForUnsafeMethods]
     serializer_class = HutListSerializer
@@ -91,6 +94,18 @@ class HutListAPIView(generics.ListCreateAPIView):
             .order_by('-created_at')[:3]
         )
 
+    def list(self, request, *args, **kwargs):
+        page = request.query_params.get('page', '1')
+        cache_key = f"hut_list_page_{page}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            response = Response(cached_data)
+        else:
+            response = super().list(request, *args, **kwargs)
+            cache.set(cache_key, response.data, 900)
+        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
+
 class HutListHomeAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
     serializer_class = HutListHomeSerializer
@@ -103,6 +118,17 @@ class HutListHomeAPIView(generics.ListCreateAPIView):
             .filter(is_active=True)
             .order_by('-created_at')[:3]
         )
+
+    def list(self, request, *args, **kwargs):
+        cache_key = "hut_list_home"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            response = Response(cached_data)
+        else:
+            response = super().list(request, *args, **kwargs)
+            cache.set(cache_key, response.data, 900)
+        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
 
 
 
@@ -212,30 +238,51 @@ class KenSpecialItemsDetailView(generics.RetrieveUpdateDestroyAPIView):
 class EventListAPIView(generics.ListAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
     pagination_class=TenPagePagination
+    serializer_class = EventSerializer
+
     def get_queryset(self):
         today = now().date()
-        return Event.objects.filter(
-            # capacity__gt=0,
+        return Event.objects.select_related('location', 'supplier', 'hut').prefetch_related('available_dates', 'event_note', 'event_include', 'event_include__icon').filter(
             available_dates__capacity__gt=0,
             available_dates__date__gt=today
         ).distinct().order_by('-created_at')
 
-    serializer_class = EventSerializer
+    def list(self, request, *args, **kwargs):
+        page = request.query_params.get('page', '1')
+        cache_key = f"event_list_page_{page}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            response = Response(cached_data)
+        else:
+            response = super().list(request, *args, **kwargs)
+            cache.set(cache_key, response.data, 900)
+        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
 
 
 class RandomEventListAPIView(generics.ListAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
     serializer_class = EventSerializer
 
-    
     def get_queryset(self):
         today = now().date()
-        return Event.objects.filter(
+        return Event.objects.select_related('location', 'supplier', 'hut').prefetch_related('available_dates', 'event_note', 'event_include', 'event_include__icon').filter(
             capacity__gt=0,
             available_dates__date__gte=today,
             is_active=True,
             is_delete=False,
         ).distinct().order_by('?')[:10]
+
+    def list(self, request, *args, **kwargs):
+        cache_key = "random_event_list"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            response = Response(cached_data)
+        else:
+            response = super().list(request, *args, **kwargs)
+            cache.set(cache_key, response.data, 300)
+        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
 
 # class EventRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 #     permission_classes = [IsAdminForUnsafeMethods] 
@@ -437,10 +484,21 @@ class RandomServiceListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         today = now().date()
-        return Services.objects.filter(
+        return Services.objects.select_related('supplier', 'hut').prefetch_related('available_dates').filter(
             capacity__gt=0,
             available_dates__date__gte=today,is_active=True,is_delete=False
         ).distinct().order_by('?')[:10]
+
+    def list(self, request, *args, **kwargs):
+        cache_key = "random_service_list"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            response = Response(cached_data)
+        else:
+            response = super().list(request, *args, **kwargs)
+            cache.set(cache_key, response.data, 300)
+        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
     
     
     
@@ -457,6 +515,18 @@ class HutRatingListAPIView(generics.ListAPIView):
         if hut_id:
             qs = qs.filter(hut_id=hut_id)
         return qs[:3]  
+
+    def list(self, request, *args, **kwargs):
+        hut_id = request.query_params.get('hut', 'all')
+        cache_key = f"hut_rating_list_{hut_id}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            response = Response(cached_data)
+        else:
+            response = super().list(request, *args, **kwargs)
+            cache.set(cache_key, response.data, 900)
+        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
 
 
 

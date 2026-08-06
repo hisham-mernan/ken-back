@@ -1,9 +1,29 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.core.cache import cache
 from .models import *
 from .scheduler import  *
 from django.db.models.signals import pre_save
 from django.core.exceptions import ValidationError
+
+
+@receiver([post_save, post_delete], sender=Hut)
+@receiver([post_save, post_delete], sender=AvailableDateRanges)
+@receiver([post_save, post_delete], sender=Event)
+@receiver([post_save, post_delete], sender=AvailableDateEvent)
+@receiver([post_save, post_delete], sender=Services)
+@receiver([post_save, post_delete], sender=AvailableDateService)
+@receiver([post_save, post_delete], sender=HutRating)
+@receiver([post_save, post_delete], sender=Booking)
+def invalidate_product_caches(sender, instance, **kwargs):
+    cache.delete("hut_list_home")
+    cache.delete("random_event_list")
+    cache.delete("random_service_list")
+    for i in range(1, 10):
+        cache.delete(f"hut_list_page_{i}")
+        cache.delete(f"event_list_page_{i}")
+        cache.delete(f"hut_rating_list_{i}")
+    cache.delete("hut_rating_list_all")
 
 # def calculate_total(booking):
 #     total = 0
