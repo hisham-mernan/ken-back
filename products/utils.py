@@ -347,11 +347,14 @@ def is_hut_available(hut_id, date_from, date_to,booking_obj):
 from datetime import timedelta,timezone
 from .models import Hut, AvailableDateRanges, Booking, BookingDate
 from django.utils.timezone import now
-def get_hut_available_dates(hut_id):
-    try:
-        hut = Hut.objects.get(id=hut_id)
-    except Hut.DoesNotExist:
-        return []
+def get_hut_available_dates(hut_or_id):
+    if isinstance(hut_or_id, Hut):
+        hut = hut_or_id
+    else:
+        try:
+            hut = Hut.objects.get(id=hut_or_id)
+        except Hut.DoesNotExist:
+            return []
 
     # Step 1: Get all available date ranges in the future
     today = now().date()
@@ -361,7 +364,7 @@ def get_hut_available_dates(hut_id):
     ).order_by("date_from")
 
     # Step 2: Get all booked date ranges (paid or confirmed)
-    bookings = Booking.objects.filter(hut=hut, status__in=["paid", "confirmed"])
+    bookings = Booking.objects.filter(hut=hut, status__in=["paid", "confirmed"]).prefetch_related('dates')
     booked_ranges = []
     for booking in bookings:
         for b_date in booking.dates.all():

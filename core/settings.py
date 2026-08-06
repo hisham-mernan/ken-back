@@ -189,6 +189,8 @@ if DATABASE_URL:
             ssl_require=False
         )
     }
+    DATABASES["default"]["OPTIONS"] = DATABASES["default"].get("OPTIONS", {})
+    DATABASES["default"]["OPTIONS"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 elif os.getenv("DATABASE_ENGINE") == "django.db.backends.postgresql":
     DATABASES = {
         "default": {
@@ -198,6 +200,9 @@ elif os.getenv("DATABASE_ENGINE") == "django.db.backends.postgresql":
             "PASSWORD": os.getenv("DATABASE_PASSWORD"),
             "HOST": os.getenv("DATABASE_HOST", "localhost"),
             "PORT": os.getenv("DATABASE_PORT", "5432"),
+            "OPTIONS": {
+                "DISABLE_SERVER_SIDE_CURSORS": True,
+            }
         }
     }
 else:
@@ -207,6 +212,13 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
 
 LOGGING = {
     'version': 1,

@@ -81,9 +81,11 @@ class HutListAPIView(generics.ListCreateAPIView):
      
         return (
             Hut.objects
+            .select_related('location')
+            .prefetch_related('images', 'available_dates', 'promocode')
             .filter(
-                Q(available_dates__date_from__lt=today) and
-                Q(available_dates__date_to__gt=today),is_active=True
+                Q(available_dates__date_from__lt=today) &
+                Q(available_dates__date_to__gt=today), is_active=True
             )
             .distinct()
             .order_by('-created_at')[:3]
@@ -94,7 +96,13 @@ class HutListHomeAPIView(generics.ListCreateAPIView):
     serializer_class = HutListHomeSerializer
 
     def get_queryset(self):
-        return Hut.objects.filter(is_active=True).order_by('-created_at')[:3]
+        return (
+            Hut.objects
+            .select_related('location')
+            .prefetch_related('images', 'available_dates', 'promocode')
+            .filter(is_active=True)
+            .order_by('-created_at')[:3]
+        )
 
 
 
@@ -106,7 +114,7 @@ class EventRetrieveWebView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return Event.objects.filter(is_delete=False)
+        return Event.objects.select_related('location', 'supplier', 'hut').prefetch_related('available_dates', 'event_note', 'event_include', 'event_include__icon').filter(is_delete=False)
   
 
 
@@ -118,7 +126,7 @@ class EventRetrieveWebView(generics.RetrieveAPIView):
 
 
 class HutDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset =Hut.objects.all()
+    queryset = Hut.objects.select_related('location').prefetch_related('images', 'available_dates', 'promocode', 'main_services', 'main_services__icon', 'activities')
     serializer_class = HutSerializer
     permission_classes = [IsAdminForUnsafeMethods] 
     def update(self, request, *args, **kwargs):

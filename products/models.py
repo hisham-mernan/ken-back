@@ -14,14 +14,14 @@ def event_image(instance, filetitle):
 def qr_image(instance, filetitle):
     return '/'.join(['uploads/services/qr', filetitle])
 class AvailableDateEvent(models.Model):
-    date = models.DateField(null=True)
+    date = models.DateField(null=True, db_index=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     # promo_code=models.CharField(max_length=255,null=True,blank=True)
     # precentage=models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     capacity=models.IntegerField(null=True,blank=True)
     min_purchasable_quantity = models.IntegerField(default=1, null=True, blank=True)
     max_purchasable_quantity = models.IntegerField(default=10, null=True, blank=True)
-    is_active = models.BooleanField(default=True) 
+    is_active = models.BooleanField(default=True, db_index=True) 
     
     
     
@@ -31,20 +31,19 @@ class AvailableDateEvent(models.Model):
     
 
 class AvailableDateService(models.Model):
-    date = models.DateField(null=True)
+    date = models.DateField(null=True, db_index=True)
     price = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     # promo_code=models.CharField(max_length=255,null=True,blank=True)
     # precentage=models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     capacity=models.IntegerField(null=True,blank=True)
     min_purchasable_quantity = models.IntegerField(default=1, null=True, blank=True)
     max_purchasable_quantity = models.IntegerField(default=10, null=True, blank=True)
-    is_active = models.BooleanField(default=True) 
+    is_active = models.BooleanField(default=True, db_index=True) 
     
 
     def __str__(self):
         return str(self.date)
     
-
 
     
     
@@ -92,7 +91,7 @@ class Note(models.Model):
 
 class PromoCode(models.Model):
     code=models.CharField(max_length=255,unique=True)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True) 
     percentage=models.IntegerField(default=0)
     
@@ -107,7 +106,7 @@ class Hut(models.Model):
     rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     # includes = models.ManyToManyField(Includes, related_name='huts',null=True,blank=True)
     # available_dates = models.ManyToManyField(AvailableDate, related_name='huts')
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     images=models.ManyToManyField(HutImages,null=True,blank=True)
     main_image= models.ImageField(upload_to=hut_image, null=True, blank=True, max_length=500)
     location=models.ForeignKey(Location, on_delete=models.CASCADE,null=True,blank=True)
@@ -115,7 +114,7 @@ class Hut(models.Model):
     bedrooms_num=models.IntegerField(null=True, blank=True,)
     bathrooms_num=models.IntegerField(null=True, blank=True,)
     max_persons_num=models.IntegerField(null=True, blank=True)
-    is_active = models.BooleanField(default=True) 
+    is_active = models.BooleanField(default=True, db_index=True) 
     check_in=models.TimeField(null=True,blank=True)
     check_out=models.TimeField(null=True,blank=True)
     macc_address=models.CharField(max_length=255,null=True, blank=True)
@@ -127,8 +126,8 @@ class Hut(models.Model):
 
 
 class AvailableDateRanges(models.Model):
-    date_from = models.DateField()
-    date_to= models.DateField()
+    date_from = models.DateField(db_index=True)
+    date_to= models.DateField(db_index=True)
     price = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     promo_code=models.CharField(max_length=255,null=True,blank=True)
     precentage=models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
@@ -150,13 +149,13 @@ class Event(models.Model):
     
     available_dates = models.ManyToManyField(AvailableDateEvent, related_name='events',null=True,blank=True)
     capacity=models.IntegerField(null=True,blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     image = models.ImageField(upload_to=event_image, null=True, blank=True, max_length=500)
     location=models.ForeignKey(Location, on_delete=models.CASCADE,null=True,blank=True)
     min_purchasable_quantity = models.IntegerField(default=1, null=True, blank=True)
     max_purchasable_quantity = models.IntegerField(default=10, null=True, blank=True)
-    is_active = models.BooleanField(default=True) 
-    is_delete = models.BooleanField(default=False) 
+    is_active = models.BooleanField(default=True, db_index=True) 
+    is_delete = models.BooleanField(default=False, db_index=True) 
     
     def __str__(self):
         return self.title
@@ -174,8 +173,8 @@ class KenSpecialItems(models.Model):
     huts=models.ManyToManyField(Hut,null=True,blank=True)
     min_purchasable_quantity = models.IntegerField(default=1, null=True, blank=True)
     max_purchasable_quantity = models.IntegerField(default=10, null=True, blank=True)
-    is_active = models.BooleanField(default=True) 
-    is_delete = models.BooleanField(default=False) 
+    is_active = models.BooleanField(default=True, db_index=True) 
+    is_delete = models.BooleanField(default=False, db_index=True) 
     
     
     
@@ -194,8 +193,8 @@ class Services(models.Model):
     available_dates = models.ManyToManyField(AvailableDateService, related_name='services',null=True,blank=True)
     min_purchasable_quantity = models.IntegerField(default=1, null=True, blank=True)
     max_purchasable_quantity = models.IntegerField(default=10, null=True, blank=True)
-    is_active = models.BooleanField(default=True) 
-    is_delete = models.BooleanField(default=False) 
+    is_active = models.BooleanField(default=True, db_index=True) 
+    is_delete = models.BooleanField(default=False, db_index=True) 
     
     
     
@@ -238,8 +237,8 @@ class Booking(models.Model):
     paid=models.DecimalField(max_digits=10, decimal_places=2, default=0,null=True,blank=True)
     not_paid=models.DecimalField(max_digits=10, decimal_places=2, default=0,null=True,blank=True)
     kids_max_num = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    status=models.CharField(max_length=255, choices=(("pending", "pending"),('confirmed','confirmed'),('cancelled','cancelled'),('paid','paid'),('refuned','refuned')),default="pending")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    status=models.CharField(max_length=255, choices=(("pending", "pending"),('confirmed','confirmed'),('cancelled','cancelled'),('paid','paid'),('refuned','refuned')),default="pending", db_index=True)
     qr_code = models.CharField(max_length=255, blank=True, null=True, default=uuid.uuid4)
     qr_code_image = models.ImageField(upload_to=qr_image, null=True, blank=True)
     is_qr_genereated=models.BooleanField(default=False)
@@ -263,8 +262,8 @@ class Booking(models.Model):
     #  super().save(*args, **kwargs)
 class BookingDate(models.Model):
     booking = models.ForeignKey(Booking, related_name='dates', on_delete=models.CASCADE)
-    date_from = models.DateField()
-    date_to= models.DateField()
+    date_from = models.DateField(db_index=True)
+    date_to= models.DateField(db_index=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     is_extra=models.BooleanField(default=False)
     is_paid=models.BooleanField(default=False)

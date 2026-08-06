@@ -195,29 +195,41 @@ class HutSerializer(serializers.ModelSerializer):
         return instance
 
     def get_available_dates(self, obj):
-        array = get_hut_available_dates(obj.id)
-        return array
+        if not hasattr(self, '_dates_cache'):
+            self._dates_cache = {}
+        if obj.id not in self._dates_cache:
+            self._dates_cache[obj.id] = get_hut_available_dates(obj)
+        return self._dates_cache[obj.id]
+
     def get_main_services(self, obj):
-        services = obj.main_services.filter(is_extra=False)
-        return HutMainServiceSerializer(services, many=True,context=self.context).data
+        if hasattr(obj, '_prefetched_objects_cache') and 'main_services' in obj._prefetched_objects_cache:
+            services = [s for s in obj.main_services.all() if not s.is_extra]
+        else:
+            services = obj.main_services.filter(is_extra=False)
+        return HutMainServiceSerializer(services, many=True, context=self.context).data
 
     def get_extra_services(self, obj):
-        services = obj.main_services.filter(is_extra=True)
-        return HutMainServiceSerializer(services, many=True,context=self.context).data
+        if hasattr(obj, '_prefetched_objects_cache') and 'main_services' in obj._prefetched_objects_cache:
+            services = [s for s in obj.main_services.all() if s.is_extra]
+        else:
+            services = obj.main_services.filter(is_extra=True)
+        return HutMainServiceSerializer(services, many=True, context=self.context).data
 
     def get_activities(self, obj):
         activities = obj.activities.all()
-        return HutActivitySerializer(activities, many=True,context=self.context).data
+        return HutActivitySerializer(activities, many=True, context=self.context).data
+
     def get_lowest_price(self, obj):
-     dates = get_hut_available_dates(obj.id)
-     if not dates:
-        return None
-     prices = [d['price'] for d in dates if 'price' in d]
-     return min(prices) if prices else None
-    
+        dates = self.get_available_dates(obj)
+        if not dates:
+            return None
+        prices = [d['price'] for d in dates if 'price' in d]
+        return min(prices) if prices else None
+
     def get_total_reviews(self, obj):
-        # Total number of reviews/ratings for this hut
-        return HutRating.objects.filter(hut=obj).count()
+        if hasattr(obj, 'hutrating_count'):
+            return obj.hutrating_count
+        return obj.hutrating_set.count()
 
 
 
@@ -354,14 +366,16 @@ class HutListHomeSerializer(serializers.ModelSerializer):
             
         ]
     def get_lowest_price(self, obj):
-     dates = get_hut_available_dates(obj.id)
-     if not dates:
-        return None
-     prices = [d['price'] for d in dates if 'price' in d]
-     return min(prices) if prices else None
+        dates = get_hut_available_dates(obj)
+        if not dates:
+            return None
+        prices = [d['price'] for d in dates if 'price' in d]
+        return min(prices) if prices else None
     
     def get_total_reviews(self, obj):
-        return HutRating.objects.filter(hut=obj).count()
+        if hasattr(obj, 'hutrating_count'):
+            return obj.hutrating_count
+        return obj.hutrating_set.count()
 
 
 
@@ -421,14 +435,16 @@ class HutListSerializer(serializers.ModelSerializer):
             
         ]
     def get_lowest_price(self, obj):
-     dates = get_hut_available_dates(obj.id)
-     if not dates:
-        return None
-     prices = [d['price'] for d in dates if 'price' in d]
-     return min(prices) if prices else None
+        dates = get_hut_available_dates(obj)
+        if not dates:
+            return None
+        prices = [d['price'] for d in dates if 'price' in d]
+        return min(prices) if prices else None
     
     def get_total_reviews(self, obj):
-        return HutRating.objects.filter(hut=obj).count()
+        if hasattr(obj, 'hutrating_count'):
+            return obj.hutrating_count
+        return obj.hutrating_set.count()
 
 
 class EventSerializer(serializers.ModelSerializer):
