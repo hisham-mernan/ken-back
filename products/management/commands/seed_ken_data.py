@@ -245,14 +245,21 @@ class Command(BaseCommand):
             ("Reef Diving & Coral Conservation Tour", "جولة الغوص واستكشاف شعب المرجان", "Guided scuba diving trip led by marine biologists exploring untouched coral reefs and rare sea turtles.", "رحلة غوص استكشافية برفقة خبراء أحياء بحرية لاستكشاف الشعب المرجانية العذراء والسلاحف البحرية النادرة.", 5.00, 12, supplier1, loc2, hut2),
             ("Stargazing Desert Shore Night", "ليلة التخييم ومراقبة النجوم على الشاطئ", "A magical night of telescope astronomy, traditional campfire tales, and traditional Saudi hospitality under the stars.", "ليلة ساحرة لرصد النجوم بالتلسكوبات، وحكايات السمر حول شبة النار والضيافة السعودية الأصيلة تحت النجوم.", 5.00, 20, supplier2, loc3, hut3),
             ("Luxury Private Yacht Party & Live DJ", "حفل يخت خاص فاخر مع دي جي", "Exclusive sunset cruise on a 75ft motor yacht with live DJ performance and gourmet catering.", "رحلة يخت فاخر عند الغروب بطول 75 قدم مع دي جي مباشر ووجبات راقية مميزة.", 5.00, 10, supplier1, loc1, hut1),
-            ("Traditional Arabian Coastal Seafood Feast", "مأدبة الضيافة العربية للمأكولات البحرية", "Authentic coastal dining experience with heritage dishes, live cooking, and aromatic Arabic tea.", "تجربة طعام ساحلية أصيلة تشمل أطباقاً تراثية وطهواً مباشراً وشاي بالحبق والنعناع.", 5.00, 18, supplier2, loc3, hut3),
-            ("Underwater Marine Photography Workshop", "ورشة التصوير الاحترافي تحت الماء", "Professional masterclass on underwater ocean photography with top equipment provided.", "دورة احترافية متخصصة في التصوير الفوتوغرافي تحت الماء مع توفير أحدث الكاميرات والمعدات.", 5.00, 8, supplier1, loc2, hut2),
-            ("Full Moon Overwater Yoga & Meditation", "جلسة اليوجا والاسترخاء تحت اكتمال القمر", "Rejuvenating evening yoga and sound healing session on our overwater ocean deck.", "جلسة يوجا وعلاج بالصوت على المنصة الزجاجية فوق الماء تحت ضوء القمر.", 5.00, 15, supplier2, loc1, hut1),
-            ("Coastal Jet Ski & Water Sports Championship", "بطولة الرياضات البحرية والدبابات المائية", "Adrenaline-fueled water sports tournament with guided jet ski safari and professional instruction.", "بطولة رياضية مشوقة تشمل جولات الدبابات المائية والرياضات البحرية الممتعة.", 5.00, 15, supplier1, loc2, hut2),
-        ]
-
-        start_d = date(2026, 1, 1)
+            ("Traditional Arabian Coastal Seafood Feast", "مأدبة الضيافة العربية للمأكولات البحر�        start_d = date(2026, 1, 1)
         end_d = date(2026, 12, 31)
+        all_dates = [start_d + timedelta(days=i) for i in range((end_d - start_d).days + 1)]
+
+        AvailableDateEvent.objects.bulk_create(
+            [AvailableDateEvent(date=d, price=5.00, capacity=20, is_active=True) for d in all_dates],
+            ignore_conflicts=True
+        )
+        e_dates_qs = list(AvailableDateEvent.objects.filter(date__gte=start_d, date__lte=end_d))
+
+        AvailableDateService.objects.bulk_create(
+            [AvailableDateService(date=d, price=5.00, capacity=20, is_active=True) for d in all_dates],
+            ignore_conflicts=True
+        )
+        s_dates_qs = list(AvailableDateService.objects.filter(date__gte=start_d, date__lte=end_d))
 
         for title, title_ar, desc, desc_ar, price, cap, supp, loc, hut in events_data:
             ev = Event.objects.create(
@@ -273,15 +280,7 @@ class Command(BaseCommand):
             )
             EventInclude.objects.create(event=ev, icon=icon_bbq, description="Complimentary Drinks & Equipment", description_ar="مشروبات ومعدات مجانية")
             EventNote.objects.create(event=ev, description="Daily available departure", description_ar="مغادرة متاحة يومياً")
-
-            # Attach daily available dates
-            curr = start_d
-            e_dates = []
-            while curr <= end_d:
-                e_obj, _ = AvailableDateEvent.objects.get_or_create(date=curr, defaults={'price': price, 'capacity': cap, 'is_active': True})
-                e_dates.append(e_obj)
-                curr += timedelta(days=1)
-            ev.available_dates.set(e_dates)
+            ev.available_dates.set(e_dates_qs)
 
         # 8. Seed Expanded Services (8 Services)
         self.stdout.write("Seeding 8+ Expanded Services...")
@@ -291,6 +290,27 @@ class Command(BaseCommand):
             ("Rustic Breakfast Platter to Room", "وجبة الإفطار الريفي الفاخر في الكوخ", "Gourmet coastal breakfast delivered hot directly to your overwater terrace every morning.", "إفطار ساحلي فاخر يُقدم ساخناً يومياً مباشرة إلى تراس الكوخ الخاص بك.", 5.00, 15, supplier2, hut3),
             ("Campfire Seafood Feast", "مأدبة المأكولات البحرية على الحطب", "Traditional wood-fired grilled lobster, hamour, and prawns served on the shore.", "استاكوزا وهامور وروبيان مشوي على الفحم والحطب يُقدم على الشاطئ مباشرة.", 5.00, 12, supplier2, hut1),
             ("24/7 Private Butler & Concierge Service", "خدمة المساعد الشخصي الخاص على مدار الساعة", "Dedicated personal butler managing all dining, spa, and sea activity reservations.", "مساعد شخصي خاص لتلبية طلباتك وتنسيق الوجبات وحجوزات السبا والأنشطة.", 5.00, 5, supplier1, hut3),
+            ("In-Hut Luxury Spa & Body Massage", "خدمة المساج والاسترخاء الملكي داخل الكوخ", "60-minute relaxing aromatherapy massage delivered by certified wellness therapists inside your hut.", "جلسة مساج وعلاج بالزيوت العطرية لمدة 60 دقيقة يقدمها أخصائيون محترفون داخل كوخك.", 5.00, 8, supplier1, hut2),
+            ("Executive Private Airport Chauffeur", "خدمة التوصيل الخاص السريع من وإلى المطار", "Luxury SUV transfer with private driver between King Abdulaziz Airport and Ken Reef.", "توصيل بدرجة رجال الأعمال وسيارة فاخرة وسائق خاص من وإلى المطار.", 5.00, 10, supplier2, hut1),
+            ("Floating Breakfast Tray in Private Pool", "صينية الإفطار العائمة في المسبح الخاص", "Instagram-worthy floating breakfast basket served right in your private plunge pool.", "صينية إفطار عائمة فاخرة في المسبح الخاص بالكوخ التقاط أجمل الصور الذكارية.", 5.00, 10, supplier2, hut3),
+        ]
+
+        for title, title_ar, desc, desc_ar, price, cap, supp, hut in services_data:
+            sv = Services.objects.create(
+                supplier=supp,
+                title=title,
+                title_ar=title_ar,
+                description=desc,
+                description_ar=desc_ar,
+                price=price,
+                capacity=cap,
+                min_purchasable_quantity=1,
+                max_purchasable_quantity=5,
+                is_active=True,
+                is_delete=False,
+                hut=hut
+            )
+            sv.available_dates.set(s_dates_qs)ing all dining, spa, and sea activity reservations.", "مساعد شخصي خاص لتلبية طلباتك وتنسيق الوجبات وحجوزات السبا والأنشطة.", 5.00, 5, supplier1, hut3),
             ("In-Hut Luxury Spa & Body Massage", "خدمة المساج والاسترخاء الملكي داخل الكوخ", "60-minute relaxing aromatherapy massage delivered by certified wellness therapists inside your hut.", "جلسة مساج وعلاج بالزيوت العطرية لمدة 60 دقيقة يقدمها أخصائيون محترفون داخل كوخك.", 5.00, 8, supplier1, hut2),
             ("Executive Private Airport Chauffeur", "خدمة التوصيل الخاص السريع من وإلى المطار", "Luxury SUV transfer with private driver between King Abdulaziz Airport and Ken Reef.", "توصيل بدرجة رجال الأعمال وسيارة فاخرة وسائق خاص من وإلى المطار.", 5.00, 10, supplier2, hut1),
             ("Floating Breakfast Tray in Private Pool", "صينية الإفطار العائمة في المسبح الخاص", "Instagram-worthy floating breakfast basket served right in your private plunge pool.", "صينية إفطار عائمة فاخرة في المسبح الخاص بالكوخ التقاط أجمل الصور الذكارية.", 5.00, 10, supplier2, hut3),
