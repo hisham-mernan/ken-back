@@ -8,9 +8,15 @@ class ProductsConfig(AppConfig):
     def ready(self):
         import products.signals
         import products.scheduler
-        # scheduler_thread = Thread(target=run_scheduler, daemon=True)
-        # scheduler_thread.start()
-        # print("Scheduler thread started.")
+        
+        try:
+            from products.models import Event
+            if not Event.objects.filter(is_active=True).exists():
+                from django.core.management import call_command
+                call_command('seed_ken_data')
+                print("[ProductsConfig] Automatically seeded database with Ken content.")
+        except Exception as e:
+            pass
         
         
 # from django.apps import AppConfig
