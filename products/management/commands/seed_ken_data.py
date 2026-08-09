@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from accounts.models import Partners, Support, WebRating, WebsiteRate
+from accounts.models import Partners, Support, WebRating, WebsiteRate, Notification
 from content.models import (
     AboutUs, FAQ, Story, OurService, SpecailAboutUs,
     TermsAndCindations, TermsAndCindationsTitle, WebStoreRating, WebStore
@@ -12,19 +12,24 @@ from content.models import (
 from products.models import (
     Hut, Location, AvailableDateRanges, HutImages, PromoCode,
     HutMainService, HutActivity, Icon, Event, Services, EventInclude,
-    EventNote, HutRating, AvailableDateEvent, AvailableDateService, KenSpecialItems
+    EventNote, HutRating, AvailableDateEvent, AvailableDateService, KenSpecialItems,
+    Booking, BookingDate, EventTicket, ServiceTicket
 )
 
 User = get_user_model()
 
 class Command(BaseCommand):
-    help = "Seed the database with rich bilingual (Arabic & English) huts, events, services, suppliers, content, FAQs, and reviews available until 2026/12/31."
+    help = "Seed database with reverted hut titles, 8+ bilingual events, 8+ services, and complete dashboard metrics through 2026/12/31."
 
     @transaction.atomic
     def handle(self, *args, **options):
-        self.stdout.write(self.style.WARNING("Seeding database with bilingual Ken data..."))
+        self.stdout.write(self.style.WARNING("Seeding database with expanded bilingual data & dashboard metrics..."))
 
         # 1. Clear existing data
+        BookingDate.objects.all().delete()
+        EventTicket.objects.all().delete()
+        ServiceTicket.objects.all().delete()
+        Booking.objects.all().delete()
         HutRating.objects.all().delete()
         HutActivity.objects.all().delete()
         HutMainService.objects.all().delete()
@@ -48,6 +53,9 @@ class Command(BaseCommand):
         SpecailAboutUs.objects.all().delete()
         TermsAndCindations.objects.all().delete()
         TermsAndCindationsTitle.objects.all().delete()
+        Support.objects.all().delete()
+        Notification.objects.all().delete()
+        Partners.objects.all().delete()
 
         # 2. Seed Users & Suppliers
         self.stdout.write("Seeding Admin & Supplier accounts...")
@@ -146,11 +154,12 @@ class Command(BaseCommand):
         promo2 = PromoCode.objects.create(code="KENLUXURY", percentage=15, is_active=True)
         promo3 = PromoCode.objects.create(code="WELCOME10", percentage=10, is_active=True)
 
-        # 6. Seed Huts / Products
-        self.stdout.write("Seeding Luxury Huts...")
+        # 6. Seed Huts (REVERTED TITLES: Wahad Hut, Malath Hut, Qimma Hut)
+        self.stdout.write("Seeding Luxury Huts (Reverted Titles)...")
         hut1 = Hut.objects.create(
-            title="Wahad Luxury Reef Hut",
-            title_ar="كوخ واحة المرجان الفاخر",
+            id=2,
+            title="Wahad Hut",
+            title_ar="كوخ واحة",
             description="Experience ultimate serene coastal luxury over crystal-clear Red Sea waters with private infinity deck and personal butler service.",
             description_ar="استمتع بأقصى درجات الرفاهية والهدوء الساحلي فوق مياه البحر الأحمر الكريستالية مع سطح خاص وإطلالة بانورامية ساحرة.",
             size="large",
@@ -169,8 +178,9 @@ class Command(BaseCommand):
         hut1.promocode.add(promo1, promo2)
 
         hut2 = Hut.objects.create(
-            title="Malath Private Sea Suite",
-            title_ar="متوافق ملاذ البحر الخصوصي",
+            id=3,
+            title="Malath Hut",
+            title_ar="كوخ ملاذ",
             description="An intimate beachfront sanctuary featuring panoramic ocean sunsets, private heated jacuzzi, and direct reef snorkeling access.",
             description_ar="ملاذ شاطئي خاص وساحر يتميز بملحق جاكوزي دافئ وإطلالة بانورامية كاملة على غروب البحر ودخول مباشر لغوص المرجان.",
             size="meduim",
@@ -189,8 +199,9 @@ class Command(BaseCommand):
         hut2.promocode.add(promo2, promo3)
 
         hut3 = Hut.objects.create(
-            title="Qimma Royal Overwater Villa",
-            title_ar="فيلا قمة المرجان الملكية فوق الماء",
+            id=4,
+            title="Qimma Hut",
+            title_ar="كوخ قمة",
             description="Our flagship 4-bedroom overwater masterpiece with transparent glass floor viewing gallery, private plunge pool, and gourmet dining space.",
             description_ar="تحفتنا المعمارية الملكية فوق الماء بـ 4 غرف نوم وأرضية زجاجية شفافة لمشاهدة المرجان ومسبح خاص وتراس لتناول الطعام المتميز.",
             size="large",
@@ -227,123 +238,86 @@ class Command(BaseCommand):
         HutMainService.objects.create(hut=hut3, icon=icon_pool, description="Overwater Infinity Pool", description_ar="مسبح انفينيتي ملكي فوق الماء", is_extra=False)
         HutActivity.objects.create(hut=hut3, description="Deep Sea Fishing & Scuba Expeditions", description_ar="رحلات الصيد البحري والغوص الحر")
 
-        # 7. Seed Events
-        self.stdout.write("Seeding Events...")
-        event1 = Event.objects.create(
-            supplier=supplier1,
-            title="Red Sea Sunset BBQ & Marine Gala",
-            title_ar="حفل عشاء وشواء غروب البحر الأحمر",
-            description="An unforgettable evening featuring freshly grilled seafood, live acoustic melodies, and guided night ocean observation.",
-            description_ar="أمسية ساحرة لا تُنسى تتضمن مأكولات بحرية طازجة ومشوية، وعزف موسيقي حاد، ومراقبة الكائنات البحرية ليلاً.",
-            rate=4.95,
-            capacity=15,
-            min_purchasable_quantity=1,
-            max_purchasable_quantity=10,
-            image="uploads/services/event_image/event1.jpg",
-            location=loc1,
-            hut=hut1,
-            is_active=True,
-            is_delete=False
-        )
-        EventInclude.objects.create(event=event1, icon=icon_bbq, description="Seafood Grill Buffet", description_ar="بوفيه المأكولات البحرية المشوية")
-        EventNote.objects.create(event=event1, description="Starts daily at 5:30 PM", description_ar="يبدأ يومياً الساعة 5:30 مساءً")
+        # 7. Seed Expanded Events (8 Events)
+        self.stdout.write("Seeding 8+ Expanded Events...")
+        events_data = [
+            ("Red Sea Sunset BBQ & Marine Gala", "حفل عشاء وشواء غروب البحر الأحمر", "An unforgettable evening featuring freshly grilled seafood, live acoustic melodies, and guided night ocean observation.", "أمسية ساحرة لا تُنسى تتضمن مأكولات بحرية طازجة ومشوية، وعزف موسيقي حاد، ومراقبة الكائنات البحرية ليلاً.", 1200.00, 15, supplier1, loc1, hut1),
+            ("Reef Diving & Coral Conservation Tour", "جولة الغوص واستكشاف شعب المرجان", "Guided scuba diving trip led by marine biologists exploring untouched coral reefs and rare sea turtles.", "رحلة غوص استكشافية برفقة خبراء أحياء بحرية لاستكشاف الشعب المرجانية العذراء والسلاحف البحرية النادرة.", 850.00, 12, supplier1, loc2, hut2),
+            ("Stargazing Desert Shore Night", "ليلة التخييم ومراقبة النجوم على الشاطئ", "A magical night of telescope astronomy, traditional campfire tales, and traditional Saudi hospitality under the stars.", "ليلة ساحرة لرصد النجوم بالتلسكوبات، وحكايات السمر حول شبة النار والضيافة السعودية الأصيلة تحت النجوم.", 650.00, 20, supplier2, loc3, hut3),
+            ("Luxury Private Yacht Party & Live DJ", "حفل يخت خاص فاخر مع دي جي", "Exclusive sunset cruise on a 75ft motor yacht with live DJ performance and gourmet catering.", "رحلة يخت فاخر عند الغروب بطول 75 قدم مع دي جي مباشر ووجبات راقية مميزة.", 2500.00, 10, supplier1, loc1, hut1),
+            ("Traditional Arabian Coastal Seafood Feast", "مأدبة الضيافة العربية للمأكولات البحرية", "Authentic coastal dining experience with heritage dishes, live cooking, and aromatic Arabic tea.", "تجربة طعام ساحلية أصيلة تشمل أطباقاً تراثية وطهواً مباشراً وشاي بالحبق والنعناع.", 950.00, 18, supplier2, loc3, hut3),
+            ("Underwater Marine Photography Workshop", "ورشة التصوير الاحترافي تحت الماء", "Professional masterclass on underwater ocean photography with top equipment provided.", "دورة احترافية متخصصة في التصوير الفوتوغرافي تحت الماء مع توفير أحدث الكاميرات والمعدات.", 1100.00, 8, supplier1, loc2, hut2),
+            ("Full Moon Overwater Yoga & Meditation", "جلسة اليوجا والاسترخاء تحت اكتمال القمر", "Rejuvenating evening yoga and sound healing session on our overwater ocean deck.", "جلسة يوجا وعلاج بالصوت على المنصة الزجاجية فوق الماء تحت ضوء القمر.", 400.00, 15, supplier2, loc1, hut1),
+            ("Coastal Jet Ski & Water Sports Championship", "بطولة الرياضات البحرية والدبابات المائية", "Adrenaline-fueled water sports tournament with guided jet ski safari and professional instruction.", "بطولة رياضية مشوقة تشمل جولات الدبابات المائية والرياضات البحرية الممتعة.", 750.00, 15, supplier1, loc2, hut2),
+        ]
 
-        event2 = Event.objects.create(
-            supplier=supplier1,
-            title="Reef Diving & Coral Conservation Tour",
-            title_ar="جولة الغوص واستكشاف شعب المرجان",
-            description="Guided scuba diving trip led by marine biologists exploring untouched coral reefs and rare sea turtles.",
-            description_ar="رحلة غوص استكشافية برفقة خبراء أحياء بحرية لاستكشاف الشعب المرجانية العذراء والسلاحف البحرية النادرة.",
-            rate=4.90,
-            capacity=12,
-            min_purchasable_quantity=1,
-            max_purchasable_quantity=5,
-            image="uploads/services/event_image/event2.jpg",
-            location=loc2,
-            hut=hut2,
-            is_active=True,
-            is_delete=False
-        )
-
-        event3 = Event.objects.create(
-            supplier=supplier2,
-            title="Stargazing Desert Shore Night",
-            title_ar="ليلة التخييم ومراقبة النجوم على الشاطئ",
-            description="A magical night of telescope astronomy, traditional campfire tales, and traditional Saudi hospitality under the stars.",
-            description_ar="ليلة ساحرة لرصد النجوم بالتلسكوبات، وحكايات السمر حول شبة النار والضيافة السعودية الأصيلة تحت النجوم.",
-            rate=5.00,
-            capacity=20,
-            min_purchasable_quantity=1,
-            max_purchasable_quantity=10,
-            image="uploads/services/event_image/event3.jpg",
-            location=loc3,
-            hut=hut3,
-            is_active=True,
-            is_delete=False
-        )
-
-        # Generate event dates through 2026-12-31
         start_d = date(2026, 1, 1)
         end_d = date(2026, 12, 31)
-        curr = start_d
-        e1_dates, e2_dates, e3_dates = [], [], []
-        while curr <= end_d:
-            e1_obj, _ = AvailableDateEvent.objects.get_or_create(date=curr, defaults={'price': 1200.00, 'capacity': 15, 'is_active': True})
-            e2_obj, _ = AvailableDateEvent.objects.get_or_create(date=curr, defaults={'price': 850.00, 'capacity': 12, 'is_active': True})
-            e3_obj, _ = AvailableDateEvent.objects.get_or_create(date=curr, defaults={'price': 650.00, 'capacity': 20, 'is_active': True})
-            e1_dates.append(e1_obj)
-            e2_dates.append(e2_obj)
-            e3_dates.append(e3_obj)
-            curr += timedelta(days=1)
 
-        event1.available_dates.set(e1_dates)
-        event2.available_dates.set(e2_dates)
-        event3.available_dates.set(e3_dates)
+        for title, title_ar, desc, desc_ar, price, cap, supp, loc, hut in events_data:
+            ev = Event.objects.create(
+                supplier=supp,
+                title=title,
+                title_ar=title_ar,
+                description=desc,
+                description_ar=desc_ar,
+                rate=4.95,
+                capacity=cap,
+                min_purchasable_quantity=1,
+                max_purchasable_quantity=5,
+                image="uploads/services/event_image/event1.jpg",
+                location=loc,
+                hut=hut,
+                is_active=True,
+                is_delete=False
+            )
+            EventInclude.objects.create(event=ev, icon=icon_bbq, description="Complimentary Drinks & Equipment", description_ar="مشروبات ومعدات مجانية")
+            EventNote.objects.create(event=ev, description="Daily available departure", description_ar="مغادرة متاحة يومياً")
 
-        # 8. Seed Services
-        self.stdout.write("Seeding Services...")
-        s1 = Services.objects.create(
-            supplier=supplier2,
-            title="Traditional Saudi Coffee & Dates Welcome",
-            title_ar="خدمة القهوة السعودية والتمور الفاخرة",
-            description="Freshly brewed cardamon coffee served in royal dallah with premium Madinah dates.",
-            description_ar="قهوة سعودية بالهيل والزعفران تُقدم بالدلة الملكية مع أفخر أنواع التمور الفاخرة.",
-            price=100.00,
-            capacity=20,
-            min_purchasable_quantity=1,
-            max_purchasable_quantity=10,
-            is_active=True,
-            is_delete=False,
-            hut=hut1
-        )
+            # Attach daily available dates
+            curr = start_d
+            e_dates = []
+            while curr <= end_d:
+                e_obj, _ = AvailableDateEvent.objects.get_or_create(date=curr, defaults={'price': price, 'capacity': cap, 'is_active': True})
+                e_dates.append(e_obj)
+                curr += timedelta(days=1)
+            ev.available_dates.set(e_dates)
 
-        s2 = Services.objects.create(
-            supplier=supplier1,
-            title="Private Yacht Sunset Cruise",
-            title_ar="رحلة اليخت الخاص عند الغروب",
-            description="90-minute private luxury yacht cruise around the reef islands with complimentary cold beverages.",
-            description_ar="رحلة بياخت فاخر خاص لمدة 90 دقيقة حول جزر المرجان مع تقديم عصائر طازجة وخدمة ضيافة كاملة.",
-            price=450.00,
-            capacity=10,
-            min_purchasable_quantity=1,
-            max_purchasable_quantity=5,
-            is_active=True,
-            is_delete=False,
-            hut=hut2
-        )
+        # 8. Seed Expanded Services (8 Services)
+        self.stdout.write("Seeding 8+ Expanded Services...")
+        services_data = [
+            ("Traditional Saudi Coffee & Dates Welcome", "خدمة القهوة السعودية والتمور الفاخرة", "Freshly brewed cardamon coffee served in royal dallah with premium Madinah dates.", "قهوة سعودية بالهيل والزعفران تُقدم بالدلة الملكية مع أفخر أنواع التمور الفاخرة.", 100.00, 20, supplier2, hut1),
+            ("Private Yacht Sunset Cruise", "رحلة اليخت الخاص عند الغروب", "90-minute private luxury yacht cruise around the reef islands with complimentary cold beverages.", "رحلة بياخت فاخر خاص لمدة 90 دقيقة حول جزر المرجان مع تقديم عصائر طازجة وخدمة ضيافة كاملة.", 450.00, 10, supplier1, hut2),
+            ("Rustic Breakfast Platter to Room", "وجبة الإفطار الريفي الفاخر في الكوخ", "Gourmet coastal breakfast delivered hot directly to your overwater terrace every morning.", "إفطار ساحلي فاخر يُقدم ساخناً يومياً مباشرة إلى تراس الكوخ الخاص بك.", 150.00, 15, supplier2, hut3),
+            ("Campfire Seafood Feast", "مأدبة المأكولات البحرية على الحطب", "Traditional wood-fired grilled lobster, hamour, and prawns served on the shore.", "استاكوزا وهامور وروبيان مشوي على الفحم والحطب يُقدم على الشاطئ مباشرة.", 300.00, 12, supplier2, hut1),
+            ("24/7 Private Butler & Concierge Service", "خدمة المساعد الشخصي الخاص على مدار الساعة", "Dedicated personal butler managing all dining, spa, and sea activity reservations.", "مساعد شخصي خاص لتلبية طلباتك وتنسيق الوجبات وحجوزات السبا والأنشطة.", 500.00, 5, supplier1, hut3),
+            ("In-Hut Luxury Spa & Body Massage", "خدمة المساج والاسترخاء الملكي داخل الكوخ", "60-minute relaxing aromatherapy massage delivered by certified wellness therapists inside your hut.", "جلسة مساج وعلاج بالزيوت العطرية لمدة 60 دقيقة يقدمها أخصائيون محترفون داخل كوخك.", 600.00, 8, supplier1, hut2),
+            ("Executive Private Airport Chauffeur", "خدمة التوصيل الخاص السريع من وإلى المطار", "Luxury SUV transfer with private driver between King Abdulaziz Airport and Ken Reef.", "توصيل بدرجة رجال الأعمال وسيارة فاخرة وسائق خاص من وإلى المطار.", 250.00, 10, supplier2, hut1),
+            ("Floating Breakfast Tray in Private Pool", "صينية الإفطار العائمة في المسبح الخاص", "Instagram-worthy floating breakfast basket served right in your private plunge pool.", "صينية إفطار عائمة فاخرة في المسبح الخاص بالكوخ التقاط أجمل الصور الذكارية.", 200.00, 10, supplier2, hut3),
+        ]
 
-        # Generate service dates through 2026-12-31
-        curr = start_d
-        s1_dates, s2_dates = [], []
-        while curr <= end_d:
-            s1_obj, _ = AvailableDateService.objects.get_or_create(date=curr, defaults={'price': 100.00, 'capacity': 20, 'is_active': True})
-            s2_obj, _ = AvailableDateService.objects.get_or_create(date=curr, defaults={'price': 450.00, 'capacity': 10, 'is_active': True})
-            s1_dates.append(s1_obj)
-            s2_dates.append(s2_obj)
-            curr += timedelta(days=1)
-
-        s1.available_dates.set(s1_dates)
-        s2.available_dates.set(s2_dates)
+        for title, title_ar, desc, desc_ar, price, cap, supp, hut in services_data:
+            sv = Services.objects.create(
+                supplier=supp,
+                title=title,
+                title_ar=title_ar,
+                description=desc,
+                description_ar=desc_ar,
+                price=price,
+                capacity=cap,
+                min_purchasable_quantity=1,
+                max_purchasable_quantity=5,
+                is_active=True,
+                is_delete=False,
+                hut=hut
+            )
+            curr = start_d
+            s_dates = []
+            while curr <= end_d:
+                s_obj, _ = AvailableDateService.objects.get_or_create(date=curr, defaults={'price': price, 'capacity': cap, 'is_active': True})
+                s_dates.append(s_obj)
+                curr += timedelta(days=1)
+            sv.available_dates.set(s_dates)
 
         # 9. Seed Ken Special Items
         self.stdout.write("Seeding Ken Special Items...")
@@ -360,8 +334,8 @@ class Command(BaseCommand):
         )
         item1.huts.add(hut1, hut2, hut3)
 
-        # 10. Seed Content (About Us, FAQ, Story, Terms, Reviews)
-        self.stdout.write("Seeding Content, FAQs, and Reviews...")
+        # 10. Seed Content (About Us, FAQ, Story, Terms, Reviews, Partners)
+        self.stdout.write("Seeding Content, FAQs, Partners, and Reviews...")
         AboutUs.objects.create(
             about_us="Ken Luxury Reef offers an exclusive coastal sanctuary blending authentic Arabian hospitality with world-class overwater luxury and marine reef conservation.",
             about_us_ar="يوفر كِن للمرجان الفاخر ملاذاً ساحلياً استثنائياً يجمع بين أصول الضيافة العربية الأصيلة والرفاهية الفاخرة فوق مياه البحر الأحمر مع الحفاظ على البيئة البحرية.",
@@ -421,23 +395,104 @@ class Command(BaseCommand):
             description_ar="تتطلب جميع الحجوزات إبراز هوية سارية وتأكيد الدفع الكامل قبل موعد الوصول."
         )
 
-        # Hut Ratings & Reviews
+        Partners.objects.create(image="uploads/partner/partner1.png")
+        Partners.objects.create(image="uploads/partner/partner2.png")
+
         HutRating.objects.create(
             user=guest1,
             hut=hut1,
             value=5.00,
-            content="An absolute paradise! The overwater hut surpassed all our expectations. The glass floor marine view and seafood dinner were spectacular.",
+            content="An absolute paradise! The Wahad Hut surpassed all our expectations. The glass floor marine view and seafood dinner were spectacular.",
             is_testmonail=True
         )
         HutRating.objects.create(
             user=guest1,
             hut=hut2,
             value=4.90,
-            content="تجربة استثنائية وبحرية خيالية! الكوخ ونظافة البحر والضيافة السعودية كانت فوق الوصف.",
+            content="تجربة استثنائية وبحرية خيالية! كوخ ملاذ ونظافة البحر والضيافة السعودية كانت فوق الوصف.",
             is_testmonail=True
         )
 
         WebStore.objects.get_or_create(pk=1, defaults={'avg_rate': 4.95})
         WebStoreRating.objects.create(user=guest1, rating=5, comment="World-class luxury reef experience in Saudi Arabia!")
 
-        self.stdout.write(self.style.SUCCESS("Database successfully seeded with complete bilingual Ken data through 2026/12/31!"))
+        # 11. Seed Sample Bookings & Dashboard Metrics
+        self.stdout.write("Seeding Sample Bookings & Dashboard Metrics...")
+        booking1 = Booking.objects.create(
+            user=guest1,
+            hut=hut1,
+            total_price=2100.00,
+            persons_max_num=4,
+            kids_max_num=2,
+            paid=2100.00,
+            not_paid=0.00,
+            status='paid',
+            is_paid=True,
+            is_qr_genereated=True,
+            promocode=promo1
+        )
+        BookingDate.objects.create(
+            booking=booking1,
+            date_from=date(2026, 8, 10),
+            date_to=date(2026, 8, 13),
+            total_price=2100.00,
+            is_paid=True,
+            is_confirmed=True
+        )
+        EventTicket.objects.create(
+            booking=booking1,
+            event=Event.objects.first(),
+            quantity=2,
+            date=date(2026, 8, 11),
+            is_paid=True,
+            is_confirmed=True
+        )
+        ServiceTicket.objects.create(
+            booking=booking1,
+            service=Services.objects.first(),
+            quantity=2,
+            date=date(2026, 8, 10),
+            is_paid=True,
+            is_confirmed=True
+        )
+
+        booking2 = Booking.objects.create(
+            user=guest1,
+            hut=hut2,
+            total_price=1000.00,
+            persons_max_num=2,
+            kids_max_num=1,
+            paid=1000.00,
+            not_paid=0.00,
+            status='confirmed',
+            is_paid=True,
+            is_qr_genereated=True,
+            promocode=promo2
+        )
+        BookingDate.objects.create(
+            booking=booking2,
+            date_from=date(2026, 8, 20),
+            date_to=date(2026, 8, 21),
+            total_price=1000.00,
+            is_paid=True,
+            is_confirmed=True
+        )
+
+        # Support & Notifications
+        Support.objects.create(
+            full_name="Ahmed Al-Otaibi",
+            email="guest1@kenluxuryreef.com",
+            operation=supplier1,
+            content="Can we request a late check-out for Wahad Hut on August 13th?",
+            is_replied=False
+        )
+        Notification.objects.create(
+            user=guest1,
+            content_object=booking1,
+            message="Your reservation at Wahad Hut is confirmed!",
+            message_ar="تم تأكيد حجزك في كوخ واحة بنجاح!",
+            type="booking",
+            mark_as_read=False
+        )
+
+        self.stdout.write(self.style.SUCCESS("Database successfully seeded with reverted hut titles, 8+ events, 8+ services, content, and full dashboard metrics through 2026/12/31!"))
