@@ -481,7 +481,7 @@ class RandomServiceListAPIView(generics.ListAPIView):
     def get_queryset(self):
         return Services.objects.select_related('supplier', 'hut').prefetch_related('available_dates').filter(
             is_active=True, is_delete=False
-        ).distinct().order_by('-created_at')[:10]
+        ).distinct().order_by('-id')[:10]
 
     def list(self, request, *args, **kwargs):
         cache_key = "random_service_list"

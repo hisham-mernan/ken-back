@@ -53,7 +53,7 @@ class HomepageDataAPIView(APIView):
             .prefetch_related('available_dates')
             .filter(is_active=True, is_delete=False)
             .distinct()
-            .order_by('-created_at')[:10]
+            .order_by('-id')[:10]
         )
         services_data = ServiceSerializer(services_qs, many=True, context={'request': request}).data
 
