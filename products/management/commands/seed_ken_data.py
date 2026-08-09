@@ -345,24 +345,89 @@ class Command(BaseCommand):
             mission_ar="تقديم تجارب بيئية وريفية فاخرة لا تُنسى توفر أقصى درجات الرفاهية والراحة لضيوفنا."
         )
 
-        FAQ.objects.create(
-            question="What is the check-in and check-out policy?",
-            question_ar="ما هي سياسة تسجيل الوصول والمغادرة؟",
-            answer="Check-in starts from 2:00 PM and check-out is until 12:00 PM. Early check-in or late check-out is subject to availability.",
-            answer_ar="يبدأ تسجيل الوصول من الساعة 2:00 ظهراً والمغادرة حتى الساعة 12:00 ظهراً. يمكن طلب تسجيل الوصول المبكر أو المغادرة المتأخرة حسب التوافر."
-        )
-        FAQ.objects.create(
-            question="Are water sports and diving activities included?",
-            question_ar="هل الأنشطة البحرية والغوص مشمولة مع الحجز؟",
-            answer="Complimentary snorkeling equipment and kayaks are provided for all huts. Specialized scuba tours and yacht cruises can be added easily during booking.",
-            answer_ar="يتم توفير معدات السنوركلينج والكاياك مجاناً لجميع الأكواخ. كما يمكن إضافة جولات الغوص المتخصصة ورحلات اليخت بسهولة أثناء الحجز."
-        )
-        FAQ.objects.create(
-            question="What is your cancellation policy?",
-            question_ar="ما هي سياسة الإلغاء؟",
-            answer="Free cancellation is available up to 24 hours before check-in date with full refund processed within 14 business days.",
-            answer_ar="يمكن إلغاء الحجز مع استرداد كامل المبلغ خلال 14 يوم عمل إذا تم الإلغاء قبل موعد الدخول بـ 24 ساعة أو أكثر."
-        )
+        # 12 Official Bilingual FAQs
+        faqs_list = [
+            (
+                "Is there a swimming pool?",
+                "هل يوجد مسبح ؟",
+                "No, the huts are designed as a peaceful sanctuary surrounded by nature, without a swimming pool.",
+                "لا، الأكواخ مصممة كملاذ هادئ بين الطبيعة، بدون مسبح."
+            ),
+            (
+                "Are there services near the huts?",
+                "هل يوجد خدمات حول الأكواخ ؟",
+                "Yes, nearby you will find restaurants, cafes, grocery stores, and tourist activities in Al Hada. The location is pinned via QR code for easy navigation.",
+                "نعم، حوالينا مطاعم، مقاهي، بقالات، وأنشطة سياحية في الهدا، والموقع محدد بالباركود لتسهيل الوصول."
+            ),
+            (
+                "Do you have special booking offers?",
+                "هل لديكم عروض على الحجوزات؟",
+                "Yes, we offer seasonal discounts and special packages during holidays. Follow us on Instagram to discover our latest offers.",
+                "نعم، نقدم عروض موسمية وخاصة بالأعياد والعطلات – تابعونا على الإنستقرام لمعرفة أحدثها ."
+            ),
+            (
+                "What about cleanliness and hygiene?",
+                "عن نظافة المكان؟",
+                "Cleanliness is our top priority. Every hut is thoroughly cleaned, sanitized, and inspected after each stay.",
+                "النظافة أولوية أساسية عندنا، وكل كوخ يتم تنظيفه وتعقيمه بعد كل إقامة بشكل كامل."
+            ),
+            (
+                "What is the difference between the three huts?",
+                "مالفرق بين الثلاثة أكواخ؟",
+                "* Small Hut: Ideal for 2 guests.\n* Medium Hut: Suitable for small families (3–4 guests).\n* Large Hut: Perfect for families or groups (6–8 guests).",
+                "* الكوخ الصغير: مناسب لشخصين.\n* الكوخ الوسط: مناسب لعائلة صغيرة (3–4 أشخاص).\n* الكوخ الكبير: مناسب للعوائل أو المجموعات ( 6-8) أشخاص."
+            ),
+            (
+                "Can I book a half-night stay?",
+                "أقدر أخذ نص ليلة؟",
+                "Yes, half-night bookings are available.",
+                "نعم، يوجد حجز نص ليلة."
+            ),
+            (
+                "Is drinking water provided?",
+                "هل يوجد مياه شرب ؟",
+                "Yes, both drinking water and fresh utility water are provided.",
+                "نعم، متوفر مياه شرب + مياه للاستعمال."
+            ),
+            (
+                "Are cooking utensils available?",
+                "هل يوجد أدوات طبخ ؟",
+                "Basic cooking utensils and a barbecue grill are provided (you are welcome to bring your personal items if preferred).",
+                "متوفر أدوات أساسية للطبخ + شواية (ممكن تضيفون أدواتكم الخاصة لو تحبون)."
+            ),
+            (
+                "Is the access road paved?",
+                "الطريق معبد ولا لا؟",
+                "Yes, the road is fully paved and clear all the way to the huts.",
+                "نعم، الطريق معبد وواضح حتى الوصول لموقع الأكواخ."
+            ),
+            (
+                "Do you offer event decoration and party coordination?",
+                "يوجد تنسيق حفلات؟",
+                "We offer simple party setup services (birthdays, anniversaries, small celebrations) and collaborate with expert event partners for larger custom requests.",
+                "نوفر خدمة تنسيق بسيطة للحفلات (عيد ميلاد – ذكرى – مناسبات صغيرة)، وبالتعاون مع شركاء تنسيق لو تبغون خيارات أكبر."
+            ),
+            (
+                "Are loud speakers or sound amplifiers allowed?",
+                "السماعة أو المكبر مسموح ولا ممنوع؟",
+                "Large loudspeakers are strictly prohibited to preserve the tranquility of nature and comfort of other guests.",
+                "ممنوع استخدام السماعات الكبيرة حفاظًا على هدوء المكان وراحة الضيوف الآخرين."
+            ),
+            (
+                "How many bedrooms are in each hut?",
+                "كم عدد الغرف في كل كوخ ؟",
+                "* Small Hut: 1 Bedroom\n* Medium Hut: 2 Bedrooms\n* Large Hut: 4 Bedrooms",
+                "الصغير غرفة نوم واحدة \nالوسط غرفتين \nالكبير أربعة غرف"
+            )
+        ]
+
+        for q_en, q_ar, a_en, a_ar in faqs_list:
+            FAQ.objects.create(
+                question=q_en,
+                question_ar=q_ar,
+                answer=a_en,
+                answer_ar=a_ar
+            )
 
         Story.objects.create(
             title="Conceived Over Red Sea Waves",
