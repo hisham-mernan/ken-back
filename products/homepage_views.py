@@ -59,7 +59,7 @@ class HomepageDataAPIView(APIView):
 
         # 4. About Us
         about_obj = AboutUs.objects.order_by('-created_at').first()
-        about_data = AboutUsSerializer(about_obj, context={'request': request}).data if about_obj else None
+        about_data = [AboutUsSerializer(about_obj, context={'request': request}).data] if about_obj else []
 
         # 5. FAQ
         faq_qs = FAQ.objects.all().order_by('-id')
