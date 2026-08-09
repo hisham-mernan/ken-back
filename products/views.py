@@ -2603,16 +2603,8 @@ class PublicSeedKenDataView(APIView):
         from django.core.management import call_command
         try:
             cache.clear()
-            
-            # Instantly update all prices to 5.00 SAR for testing
-            AvailableDateRanges.objects.all().update(price=5.00)
-            AvailableDateEvent.objects.all().update(price=5.00)
-            AvailableDateService.objects.all().update(price=5.00)
-            Event.objects.all().update(price=5.00)
-            Services.objects.all().update(price=5.00)
-            KenSpecialItems.objects.all().update(price=5.00)
-
             force = request.query_params.get('force') == 'true'
+
             if force or not Event.objects.filter(is_active=True).exists():
                 call_command('seed_ken_data')
 
@@ -2629,7 +2621,7 @@ class PublicSeedKenDataView(APIView):
 
             return Response({
                 "status": "success",
-                "message": "Database ready, updated to 5 SAR booking rates, and verified!",
+                "message": "Database ready and verified!",
                 "counts": {
                     "huts": Hut.objects.count(),
                     "events": Event.objects.count(),
