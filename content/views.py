@@ -200,17 +200,74 @@ class SpecailAboutUsRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIVi
 
 
 
+def seed_terms_data():
+    if not TermsAndCindationsTitle.objects.exists():
+        TermsAndCindationsTitle.objects.create(
+            title="General Terms and Conditions for Booking Ken Huts",
+            title_ar="الشروط والأحكام العامة لحجز أكواخ كِن"
+        )
+    
+    if not TermsAndCindations.objects.exists():
+        terms_items = [
+            (
+                "Guest Responsibility for Damages and Losses",
+                "مسؤولية الضيف عن التلفيات والخسائر",
+                "The guest assumes full responsibility for any material damages or losses occurring inside the hut or its facilities during the stay, whether intentional or resulting from misuse or negligence. In the event of property damage, Ken Huts management reserves the right to claim appropriate compensation based on repair or replacement costs. If payment is refused, management reserves the right to take legal action through competent authorities.",
+                "يتحمل الضيف كامل المسؤولية عن أي تلفيات أو خسائر مادية تحدث داخل الكوخ أو في مرافقه أثناء فترة الإقامة، سواء كانت متعمدة أو ناتجة عن سوء استخدام أو إهمال. في حال حدوث أي ضرر بالممتلكات، يحق لإدارة أكواخ كن المطالبة بالتعويض المناسب وفقاً لتكلفة الإصلاح أو الاستبدال. في حال رفض سداد التعويض، يحق للإدارة اتخاذ الإجراءات النظامية اللازمة عبر الجهات المختصة."
+            ),
+            (
+                "Cancellation and Amendment Policy",
+                "سياسة الإلغاء والتعديل",
+                "Reservations can be cancelled with a full refund within (14) business days if cancelled 24 hours or more before check-in. If cancelled less than 24 hours before check-in, 50% of the total booking amount will be deducted. In case of a no-show without prior notice, the full booking value may be charged.",
+                "يمكن إلغاء الحجز مع استرداد كامل المبلغ خلال (14) يوم عمل إذا تم الإلغاء قبل موعد الدخول بـ 24 ساعة أو أكثر. في حال تم الإلغاء قبل موعد الدخول بأقل من 24 ساعة، يتم خصم 50% من إجمالي مبلغ الحجز. في حال عدم الحضور دون إشعار مسبق، قد يتم احتساب قيمة الحجز كاملة."
+            ),
+            (
+                "Adherence to Facility Usage",
+                "الالتزام باستخدام المرافق",
+                "Using the huts for any illegal activities or actions violating public order and morality is strictly prohibited. Moving furniture or changing electrical appliance locations without prior management approval is forbidden. Guests must maintain cleanliness, use facilities responsibly, and leave the hut in proper condition upon departure.",
+                "يُمنع استخدام الأكواخ لأي أنشطة غير مشروعة أو مخالفة للأنظمة والآداب العامة. يُمنع نقل الأثاث أو تغيير مواقع الأجهزة الكهربائية دون موافقة مسبقة من الإدارة. يلتزم الضيوف بالحفاظ على نظافة المكان واستخدام المرافق بشكل مسؤول، وإعادة الكوخ بالحالة المناسبة عند المغادرة."
+            ),
+            (
+                "Guest and Visitor Capacity",
+                "عدد الضيوف والزوار",
+                "Guests must adhere to the guest capacity specified in the reservation. If welcoming additional visitors is desired, prior coordination and approval from management is required. Management reserves the right to deny entry to any additional visitors exceeding the hut's maximum capacity.",
+                "يجب الالتزام بعدد الضيوف المحدد في الحجز. في حال الرغبة باستقبال زوار إضافيين، يجب التنسيق المسبق مع الإدارة وأخذ الموافقة. تحتفظ الإدارة بحق رفض دخول أي عدد إضافي في حال تجاوز الطاقة الاستيعابية للكوخ."
+            ),
+            (
+                "Quiet Hours and Privacy Respect",
+                "الالتزام بالهدوء واحترام الخصوصية",
+                "At Ken Huts, we strive to provide a quiet, comfortable environment for all guests. Please maintain an appropriate noise level and avoid disturbing others. Respect the privacy of fellow guests and surrounding properties.",
+                "نحرص في أكواخ كن على توفير بيئة هادئة ومريحة لجميع الضيوف، لذا نرجو الالتزام بمستوى صوت مناسب وعدم إزعاج الآخرين. يُرجى احترام خصوصية الضيوف الآخرين والممتلكات المحيطة."
+            ),
+            (
+                "Management Rights",
+                "أحقية الإدارة",
+                "Ken Huts management reserves the right to cancel any reservation if false information is provided or terms are violated. Management also holds the right to terminate a stay in the event of non-compliance with rules or property damage.",
+                "تحتفظ إدارة أكواخ كن بالحق في إلغاء أي حجز في حال تقديم معلومات غير صحيحة أو مخالفة الشروط. كما يحق للإدارة إنهاء الإقامة في حال عدم الالتزام بالأنظمة أو الإضرار بالممتلكات."
+            ),
+            (
+                "Personal Belongings Liability",
+                "مسؤولية الممتلكات الشخصية",
+                "Ken Huts management is not responsible for loss, theft, or damage to personal items inside or outside the huts during the stay. Guests are requested to safeguard their personal belongings.",
+                "إدارة أكواخ كن غير مسؤولة عن ضياع أو سرقة أو تلف أي ممتلكات شخصية خاصة بالضيوف داخل الكوخ أو خارجه أثناء فترة الإقامة. نرجو من الجميع المحافظة على أمتعتهم الشخصية."
+            )
+        ]
+        for title_en, title_ar, desc_en, desc_ar in terms_items:
+            TermsAndCindations.objects.create(
+                title=title_en,
+                title_ar=title_ar,
+                description=desc_en,
+                description_ar=desc_ar
+            )
+
+
 class TermsAndCondationCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
     serializer_class = TermsAndCindationsSerializer
 
     def get_queryset(self):
         if not TermsAndCindations.objects.exists():
-            from django.core.management import call_command
-            try:
-                call_command('seed_ken_data')
-            except Exception:
-                pass
+            seed_terms_data()
         return TermsAndCindations.objects.all().order_by('id')
 
 class TermsAndCondationDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -261,18 +318,14 @@ class TermsAndCindationsTitleListCreateView(generics.GenericAPIView):
     def get(self, request, *args, **kwargs):
         last_obj = TermsAndCindationsTitle.objects.last()
         if not last_obj:
-            from django.core.management import call_command
-            try:
-                call_command('seed_ken_data')
-            except Exception:
-                pass
+            seed_terms_data()
             last_obj = TermsAndCindationsTitle.objects.last()
 
         if not last_obj:
-            return Response({
-                "title": "General Terms and Conditions for Booking Ken Huts",
-                "title_ar": "الشروط والأحكام العامة لحجز أكواخ كِن"
-            }, status=status.HTTP_200_OK)
+            last_obj = TermsAndCindationsTitle.objects.create(
+                title="General Terms and Conditions for Booking Ken Huts",
+                title_ar="الشروط والأحكام العامة لحجز أكواخ كِن"
+            )
 
         serializer = self.get_serializer(last_obj)
         return Response(serializer.data)
