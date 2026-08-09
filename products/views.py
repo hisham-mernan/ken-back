@@ -2605,12 +2605,13 @@ class PublicSeedKenDataView(APIView):
             call_command('migrate', interactive=False)
             cache.clear()
 
-            if not Event.objects.filter(is_active=True).exists():
+            force = request.query_params.get('force') == 'true'
+            if force or not Event.objects.filter(is_active=True).exists() or AvailableDateRanges.objects.filter(price__gt=10).exists():
                 call_command('seed_ken_data')
 
             return Response({
                 "status": "success",
-                "message": "Database ready and verified!",
+                "message": "Database ready, updated to 5 SAR booking rates, and verified!",
                 "counts": {
                     "huts": Hut.objects.count(),
                     "events": Event.objects.count(),
