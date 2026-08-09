@@ -2593,3 +2593,15 @@ class PromoCodeDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         kwargs['partial'] = True  # ensure partial update
         return super().update(request, *args, **kwargs)
+
+
+class PublicSeedKenDataView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        from django.core.management import call_command
+        try:
+            call_command('seed_ken_data')
+            return Response({"status": "success", "message": "Database seeded successfully!"})
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=500)
