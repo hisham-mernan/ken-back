@@ -23,6 +23,7 @@ from .models import Hut
 from .serializers import HutListHomeSerializer
 
 from django.db.models import Q
+from content.models import FAQ, AboutUs, Story, TermsAndCindations, TermsAndCindationsTitle
 
 
 
