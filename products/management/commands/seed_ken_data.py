@@ -337,12 +337,12 @@ class Command(BaseCommand):
         # 10. Seed Content (About Us, FAQ, Story, Terms, Reviews, Partners)
         self.stdout.write("Seeding Content, FAQs, Partners, and Official PDF Terms...")
         AboutUs.objects.create(
-            about_us="Ken your destination, Ken your sanctuary / كِن وجهتك كِن ملاذك",
-            about_us_ar="كِن وجهتك كِن ملاذك",
+            about_us="Over 40 years ago, this land was simply a vast space filled with cherished memories, carrying within it family stories and grandfathers' gatherings beneath the shade of trees. It belonged to our father, who cared for every inch of it over the decades. One day, he gave us the choice, saying: 'Do with it whatever you see fit.' From here, the idea of building tourist huts was born—reflecting nature's simplicity and warm hospitality, serving as a peaceful sanctuary for anyone seeking tranquility, beauty, and an authentic experience surrounded by nature.",
+            about_us_ar="قبل أكثر من 40 عامًا، كانت هذه الأرض مجرد مساحة واسعة مليئة بالذكريات، تحمل في طياتها قصص العائلة واجتماعات الأجداد تحت ظلال الأشجار. كانت ملكًا لوالدنا، الذي اعتنى بها طوال عقود، محبًا لكل شبر فيها، مترددًا في التخلي عنها رغم تغير الأزمان. وفي يوم من الأيام، قرر أن يمنحنا الخيار، قائلاً: \"افعلوا بها ما ترونه مناسبًا.\" من هنا، ولدت فكرة بناء أكواخ سياحية، تعكس بساطة الطبيعة ودفء الضيافة، لتكون ملاذًا لكل من يبحث عن الهدوء، والجمال، والتجربة الأصيلة وسط الطبيعة.",
             vission="To be the first choice and trusted reference in designing and crafting countryside huts.",
             vission_ar="أن نكون الخيار الأول والمرجع الموثوق في تصميم وبناء الأكواخ الريفية.",
-            mission="Delivering unforgettable countryside and overwater luxury experiences that preserve ecology while pampering every guest.",
-            mission_ar="تقديم تجارب بيئية وريفية فاخرة لا تُنسى توفر أقصى درجات الرفاهية والراحة لضيوفنا."
+            mission="Preserving the spirit of the land and its family heritage in every detail while delivering uncompromised quality, natural harmony, and authentic Saudi hospitality.",
+            mission_ar="نحافظ على روح الأرض وتاريخها العائلي في كل تفصيلة، ونلتزم بتقديم خدمات راقية، الجودة والتميز، التناغم مع الطبيعة، والأصالة والضيافة."
         )
 
         # 12 Official Bilingual FAQs
@@ -430,22 +430,22 @@ class Command(BaseCommand):
             )
 
         Story.objects.create(
-            title="Conceived Over Red Sea Waves",
-            title_ar="فكرة نبعت من أحضان البحر الأحمر والريف",
-            description="Founded in 2024, Ken Countryside & Reef Huts was created to rethink luxury hospitality by harmonizing eco-friendly design with pristine natural ecosystems.",
-            description_ar="تأسست كِن عام 2024 لإعادة تعريف الضيافة الريفية والساحلية الفاخرة من خلال التناغم التام بين التصميم الصديق للبيئة والطبيعة الخلابة."
+            title="The Story of Ken: 40 Years of Heritage",
+            title_ar="عن كِن - حكاية أرض وذكريات 40 عاماً",
+            description="Over 40 years ago, this land was simply a vast space filled with cherished memories, carrying within it family stories and grandfathers' gatherings beneath the shade of trees. It belonged to our father, who cared for every inch of it over the decades. One day, he gave us the choice, saying: 'Do with it whatever you see fit.' From here, the idea of building tourist huts was born—reflecting nature's simplicity and warm hospitality.",
+            description_ar="قبل أكثر من 40 عامًا، كانت هذه الأرض مجرد مساحة واسعة مليئة بالذكريات، تحمل في طياتها قصص العائلة واجتماعات الأجداد تحت ظلال الأشجار. كانت ملكًا لوالدنا، الذي اعتنى بها طوال عقود، محبًا لكل شبر فيها، مترددًا في التخلي عنها رغم تغير الأزمان. وفي يوم من الأيام، قرر أن يمنحنا الخيار، قائلاً: \"افعلوا بها ما ترونه مناسبًا.\" من هنا، ولدت فكرة بناء أكواخ سياحية، تعكس بساطة الطبيعة ودفء الضيافة، لتكون ملاذًا لكل من يبحث عن الهدوء، والجمال، والتجربة الأصيلة وسط الطبيعة."
         )
 
         OurService.objects.create(
-            title="Countryside & Reef Sanctuary Living",
-            title_ar="إقامة ملاذ فاخر في الأكواخ الريفية والساحلية",
-            description="Bespoke luxury huts crafted from sustainable natural materials with glass viewing galleries.",
-            description_ar="أكواخ وفلل فاخرة مصنوعة من مواد طبيعية مستدامة ومزودة بنوافذ بانورامية لمشاهدة الطبيعة والبحر."
+            title="Natural Wood Craftsmanship / خشب طبيعي وبناء سعودي",
+            title_ar="خشب طبيعي وبناء بأيدي سعودية",
+            description="High-grade natural wood structures built by Saudi hands in strategic scenic locations with smart keyless entry.",
+            description_ar="أكواخ مصممة بخشب طبيعي فاخر وبُنيت بأيدي سعودية في مواقع استراتيجية مميزة ومزودة بنظام الدخول الذكي."
         )
 
         SpecailAboutUs.objects.create(
-            title="Private Marine & Countryside Butler Service / خدمة المساعد الشخصي الخاص",
-            title_ar="خدمة مساعد شخصي خاص على مدار 24 ساعة لتلبية جميع احتياجاتك وتنسيق الوجبات والأنشطة."
+            title="What Sets Ken Apart / ما يميّز أكواخ كِن",
+            title_ar="خشب طبيعي - دخول ذكي - بُني بأيدي سعودية - موقع استراتيجي - تجربة كوخ فاخرة"
         )
 
         # Official Terms and Conditions Extracted from PDF Document
