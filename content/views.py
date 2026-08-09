@@ -202,9 +202,16 @@ class SpecailAboutUsRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIVi
 
 class TermsAndCondationCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
-    
-    queryset = TermsAndCindations.objects.all().order_by('-id')
     serializer_class = TermsAndCindationsSerializer
+
+    def get_queryset(self):
+        if not TermsAndCindations.objects.exists():
+            from django.core.management import call_command
+            try:
+                call_command('seed_ken_data')
+            except Exception:
+                pass
+        return TermsAndCindations.objects.all().order_by('id')
 
 class TermsAndCondationDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
@@ -254,7 +261,19 @@ class TermsAndCindationsTitleListCreateView(generics.GenericAPIView):
     def get(self, request, *args, **kwargs):
         last_obj = TermsAndCindationsTitle.objects.last()
         if not last_obj:
-            return Response({"detail": []}, status=status.HTTP_200_OK)
+            from django.core.management import call_command
+            try:
+                call_command('seed_ken_data')
+            except Exception:
+                pass
+            last_obj = TermsAndCindationsTitle.objects.last()
+
+        if not last_obj:
+            return Response({
+                "title": "General Terms and Conditions for Booking Ken Huts",
+                "title_ar": "الشروط والأحكام العامة لحجز أكواخ كِن"
+            }, status=status.HTTP_200_OK)
+
         serializer = self.get_serializer(last_obj)
         return Response(serializer.data)
 
