@@ -241,10 +241,9 @@ class EventListAPIView(generics.ListAPIView):
     serializer_class = EventSerializer
 
     def get_queryset(self):
-        today = now().date()
         return Event.objects.select_related('location', 'supplier', 'hut').prefetch_related('available_dates', 'event_note', 'event_include', 'event_include__icon').filter(
-            available_dates__capacity__gt=0,
-            available_dates__date__gt=today
+            is_active=True,
+            is_delete=False
         ).distinct().order_by('-created_at')
 
     def list(self, request, *args, **kwargs):
@@ -265,13 +264,10 @@ class RandomEventListAPIView(generics.ListAPIView):
     serializer_class = EventSerializer
 
     def get_queryset(self):
-        today = now().date()
         return Event.objects.select_related('location', 'supplier', 'hut').prefetch_related('available_dates', 'event_note', 'event_include', 'event_include__icon').filter(
-            capacity__gt=0,
-            available_dates__date__gte=today,
             is_active=True,
             is_delete=False,
-        ).distinct().order_by('?')[:10]
+        ).distinct().order_by('-created_at')[:10]
 
     def list(self, request, *args, **kwargs):
         cache_key = "random_event_list"
@@ -483,11 +479,9 @@ class RandomServiceListAPIView(generics.ListAPIView):
     serializer_class = ServiceSerializer
 
     def get_queryset(self):
-        today = now().date()
         return Services.objects.select_related('supplier', 'hut').prefetch_related('available_dates').filter(
-            capacity__gt=0,
-            available_dates__date__gte=today,is_active=True,is_delete=False
-        ).distinct().order_by('?')[:10]
+            is_active=True, is_delete=False
+        ).distinct().order_by('-created_at')[:10]
 
     def list(self, request, *args, **kwargs):
         cache_key = "random_service_list"

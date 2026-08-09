@@ -40,9 +40,9 @@ class HomepageDataAPIView(APIView):
             Event.objects
             .select_related('location', 'supplier', 'hut')
             .prefetch_related('available_dates', 'event_note', 'event_include', 'event_include__icon')
-            .filter(capacity__gt=0, available_dates__date__gte=today, is_active=True, is_delete=False)
+            .filter(is_active=True, is_delete=False)
             .distinct()
-            .order_by('?')[:10]
+            .order_by('-created_at')[:10]
         )
         events_data = EventSerializer(events_qs, many=True, context={'request': request}).data
 
@@ -51,9 +51,9 @@ class HomepageDataAPIView(APIView):
             Services.objects
             .select_related('supplier', 'hut')
             .prefetch_related('available_dates')
-            .filter(capacity__gt=0, available_dates__date__gte=today, is_active=True, is_delete=False)
+            .filter(is_active=True, is_delete=False)
             .distinct()
-            .order_by('?')[:10]
+            .order_by('-created_at')[:10]
         )
         services_data = ServiceSerializer(services_qs, many=True, context={'request': request}).data
 
