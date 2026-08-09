@@ -2599,9 +2599,13 @@ class PublicSeedKenDataView(APIView):
     permission_classes = []
 
     def get(self, request):
+        import traceback
         from django.core.management import call_command
         try:
+            call_command('migrate', interactive=False)
             call_command('seed_ken_data')
-            return Response({"status": "success", "message": "Database seeded successfully!"})
+            return Response({"status": "success", "message": "Database migrated and seeded successfully!"})
         except Exception as e:
-            return Response({"status": "error", "message": str(e)}, status=500)
+            error_details = traceback.format_exc()
+            print("SEED ERROR TRACEBACK:\n", error_details)
+            return Response({"status": "error", "message": str(e), "traceback": error_details}, status=500)
