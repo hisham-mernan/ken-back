@@ -238,14 +238,20 @@ class Command(BaseCommand):
         HutMainService.objects.create(hut=hut3, icon=icon_pool, description="Overwater Infinity Pool", description_ar="مسبح انفينيتي ملكي فوق الماء", is_extra=False)
         HutActivity.objects.create(hut=hut3, description="Deep Sea Fishing & Scuba Expeditions", description_ar="رحلات الصيد البحري والغوص الحر")
 
-        # 7. Seed Expanded Events (8 Events)
+                # 7. Seed Expanded Events (8 Events)
         self.stdout.write("Seeding 8+ Expanded Events...")
         events_data = [
-            ("Red Sea Sunset BBQ & Marine Gala", "حفل عشاء وشواء غروب البحر الأحمر", "An unforgettable evening featuring freshly grilled seafood, live acoustic melodies, and guided night ocean observation.", "أمسية ساحرة لا تُنسى تتضمن مأكولات بحرية طازجة ومشوية، وعزف موسيقي حاد، ومراقبة الكائنات البحرية ليلاً.", 5.00, 15, supplier1, loc1, hut1),
-            ("Reef Diving & Coral Conservation Tour", "جولة الغوص واستكشاف شعب المرجان", "Guided scuba diving trip led by marine biologists exploring untouched coral reefs and rare sea turtles.", "رحلة غوص استكشافية برفقة خبراء أحياء بحرية لاستكشاف الشعب المرجانية العذراء والسلاحف البحرية النادرة.", 5.00, 12, supplier1, loc2, hut2),
+            ("Red Sea Sunset BBQ and Marine Gala", "حفل عشاء وشواء غروب البحر الأحمر", "An unforgettable evening featuring freshly grilled seafood, live acoustic melodies, and guided night ocean observation.", "أمسية ساحرة لا تُنسى تتضمن مأكولات بحرية طازجة ومشوية، وعزف موسيقي حاد، ومراقبة الكائنات البحرية ليلاً.", 5.00, 15, supplier1, loc1, hut1),
+            ("Reef Diving and Coral Conservation Tour", "جولة الغوص واستكشاف شعب المرجان", "Guided scuba diving trip led by marine biologists exploring untouched coral reefs and rare sea turtles.", "رحلة غوص استكشافية برفقة خبراء أحياء بحرية لاستكشاف الشعب المرجانية العذراء والسلاحف البحرية النادرة.", 5.00, 12, supplier1, loc2, hut2),
             ("Stargazing Desert Shore Night", "ليلة التخييم ومراقبة النجوم على الشاطئ", "A magical night of telescope astronomy, traditional campfire tales, and traditional Saudi hospitality under the stars.", "ليلة ساحرة لرصد النجوم بالتلسكوبات، وحكايات السمر حول شبة النار والضيافة السعودية الأصيلة تحت النجوم.", 5.00, 20, supplier2, loc3, hut3),
-            ("Luxury Private Yacht Party & Live DJ", "حفل يخت خاص فاخر مع دي جي", "Exclusive sunset cruise on a 75ft motor yacht with live DJ performance and gourmet catering.", "رحلة يخت فاخر عند الغروب بطول 75 قدم مع دي جي مباشر ووجبات راقية مميزة.", 5.00, 10, supplier1, loc1, hut1),
-            ("Traditional Arabian Coastal Seafood Feast", "مأدبة الضيافة العربية للمأكولات البحر�        start_d = date(2026, 1, 1)
+            ("Luxury Private Yacht Party and Live DJ", "حفل يخت خاص فاخر مع دي جي", "Exclusive sunset cruise on a 75ft motor yacht with live DJ performance and gourmet catering.", "رحلة يخت فاخر عند الغروب بطول 75 قدم مع دي جي مباشر ووجبات راقية مميزة.", 5.00, 10, supplier1, loc1, hut1),
+            ("Traditional Arabian Coastal Seafood Feast", "مأدبة الضيافة العربية للمأكولات البحرية", "Authentic coastal dining experience with heritage dishes, live cooking, and aromatic Arabic tea.", "تجربة طعام ساحلية أصيلة تشمل أطباقاً تراثية وطهواً مباشراً وشاي بالحبق والنعناع.", 5.00, 18, supplier2, loc3, hut3),
+            ("Underwater Marine Photography Workshop", "ورشة التصوير الاحترافي تحت الماء", "Professional masterclass on underwater ocean photography with top equipment provided.", "دورة احترافية متخصصة في التصوير الفوتوغرافي تحت الماء مع توفير أحدث الكاميرات والمعدات.", 5.00, 8, supplier1, loc2, hut2),
+            ("Full Moon Overwater Yoga and Meditation", "جلسة اليوجا والاسترخاء تحت اكتمال القمر", "Rejuvenating evening yoga and sound healing session on our overwater ocean deck.", "جلسة يوجا وعلاج بالصوت على المنصة الزجاجية فوق الماء تحت ضوء القمر.", 5.00, 15, supplier2, loc1, hut1),
+            ("Coastal Jet Ski and Water Sports Championship", "بطولة الرياضات البحرية والدبابات المائية", "Adrenaline-fueled water sports tournament with guided jet ski safari and professional instruction.", "بطولة رياضية مشوقة تشمل جولات الدبابات المائية والرياضات البحرية الممتعة.", 5.00, 15, supplier1, loc2, hut2),
+        ]
+
+        start_d = date(2026, 1, 1)
         end_d = date(2026, 12, 31)
         all_dates = [start_d + timedelta(days=i) for i in range((end_d - start_d).days + 1)]
 
