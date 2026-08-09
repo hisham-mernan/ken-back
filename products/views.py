@@ -2603,9 +2603,22 @@ class PublicSeedKenDataView(APIView):
         from django.core.management import call_command
         try:
             call_command('migrate', interactive=False)
-            call_command('seed_ken_data')
-            return Response({"status": "success", "message": "Database migrated and seeded successfully!"})
+            cache.clear()
+
+            if not Event.objects.filter(is_active=True).exists():
+                call_command('seed_ken_data')
+
+            return Response({
+                "status": "success",
+                "message": "Database ready and verified!",
+                "counts": {
+                    "huts": Hut.objects.count(),
+                    "events": Event.objects.count(),
+                    "services": Services.objects.count(),
+                    "faqs": FAQ.objects.count(),
+                    "about_us": AboutUs.objects.count(),
+                }
+            })
         except Exception as e:
             error_details = traceback.format_exc()
-            print("SEED ERROR TRACEBACK:\n", error_details)
             return Response({"status": "error", "message": str(e), "traceback": error_details}, status=500)
