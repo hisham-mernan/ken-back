@@ -2606,7 +2606,7 @@ class PublicSeedKenDataView(APIView):
             cache.clear()
 
             force = request.query_params.get('force') == 'true'
-            if force or not Event.objects.filter(is_active=True).exists() or AvailableDateRanges.objects.filter(price__gt=10).exists():
+            if force or not User.objects.filter(email='supplier1@kenluxuryreef.com').exists() or AvailableDateRanges.objects.filter(price__gt=10).exists():
                 call_command('seed_ken_data')
 
             return Response({
