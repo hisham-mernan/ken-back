@@ -335,14 +335,14 @@ class Command(BaseCommand):
         item1.huts.add(hut1, hut2, hut3)
 
         # 10. Seed Content (About Us, FAQ, Story, Terms, Reviews, Partners)
-        self.stdout.write("Seeding Content, FAQs, Partners, and Reviews...")
+        self.stdout.write("Seeding Content, FAQs, Partners, and Official PDF Terms...")
         AboutUs.objects.create(
-            about_us="Ken Luxury Reef offers an exclusive coastal sanctuary blending authentic Arabian hospitality with world-class overwater luxury and marine reef conservation.",
-            about_us_ar="يوفر كِن للمرجان الفاخر ملاذاً ساحلياً استثنائياً يجمع بين أصول الضيافة العربية الأصيلة والرفاهية الفاخرة فوق مياه البحر الأحمر مع الحفاظ على البيئة البحرية.",
-            vission="To be the premier sustainable overwater reef sanctuary in the Middle East.",
-            vission_ar="أن نكون الملاذ الفاخر والمستدام الأول للشعب المرجانية فوق الماء في الشرق الأوسط.",
-            mission="Delivering unforgettable marine luxury experiences that preserve ocean ecology while pampering every guest.",
-            mission_ar="تقديم تجارب ضيافة بحرية لا تُنسى تحافظ على البيئة البحرية وتوفر أقصى درجات الرفاهية والراحة لضيوفنا."
+            about_us="Ken your destination, Ken your sanctuary / كِن وجهتك كِن ملاذك",
+            about_us_ar="كِن وجهتك كِن ملاذك",
+            vission="To be the first choice and trusted reference in designing and crafting countryside huts.",
+            vission_ar="أن نكون الخيار الأول والمرجع الموثوق في تصميم وبناء الأكواخ الريفية.",
+            mission="Delivering unforgettable countryside and overwater luxury experiences that preserve ecology while pampering every guest.",
+            mission_ar="تقديم تجارب بيئية وريفية فاخرة لا تُنسى توفر أقصى درجات الرفاهية والراحة لضيوفنا."
         )
 
         FAQ.objects.create(
@@ -360,39 +360,82 @@ class Command(BaseCommand):
         FAQ.objects.create(
             question="What is your cancellation policy?",
             question_ar="ما هي سياسة الإلغاء؟",
-            answer="Free cancellation is available up to 48 hours before check-in date with full refund.",
-            answer_ar="الإلغاء المجاني متاح حتى 48 ساعة قبل موعد الوصول مع استرداد كامل المبلغ."
+            answer="Free cancellation is available up to 24 hours before check-in date with full refund processed within 14 business days.",
+            answer_ar="يمكن إلغاء الحجز مع استرداد كامل المبلغ خلال 14 يوم عمل إذا تم الإلغاء قبل موعد الدخول بـ 24 ساعة أو أكثر."
         )
 
         Story.objects.create(
             title="Conceived Over Red Sea Waves",
-            title_ar="فكرة نبعت من أحضان البحر الأحمر",
-            description="Founded in 2024, Ken Luxury Reef was created to rethink luxury hospitality by harmonizing eco-friendly design with pristine marine ecosystems.",
-            description_ar="تأسست كِن عام 2024 لإعادة تعريف الضيافة الفاخرة من خلال التناغم التام بين التصميم الصديق للبيئة والنظم البحرية النقية."
+            title_ar="فكرة نبعت من أحضان البحر الأحمر والريف",
+            description="Founded in 2024, Ken Countryside & Reef Huts was created to rethink luxury hospitality by harmonizing eco-friendly design with pristine natural ecosystems.",
+            description_ar="تأسست كِن عام 2024 لإعادة تعريف الضيافة الريفية والساحلية الفاخرة من خلال التناغم التام بين التصميم الصديق للبيئة والطبيعة الخلابة."
         )
 
         OurService.objects.create(
-            title="Overwater Sanctuary Living",
-            title_ar="إقامة ملاذ فاخر فوق الماء",
-            description="Bespoke overwater villas crafted from sustainable materials with glass floor ocean viewing windows.",
-            description_ar="أكواخ وفلل فاخرة فوق الماء مصنوعة من مواد مستدامة ومزودة بنوافذ أرضية زجاجية لمشاهدة البحر."
+            title="Countryside & Reef Sanctuary Living",
+            title_ar="إقامة ملاذ فاخر في الأكواخ الريفية والساحلية",
+            description="Bespoke luxury huts crafted from sustainable natural materials with glass viewing galleries.",
+            description_ar="أكواخ وفلل فاخرة مصنوعة من مواد طبيعية مستدامة ومزودة بنوافذ بانورامية لمشاهدة الطبيعة والبحر."
         )
 
         SpecailAboutUs.objects.create(
-            title="Private Marine Reef Butler Service / خدمة المساعد الشخصي الخاص",
+            title="Private Marine & Countryside Butler Service / خدمة المساعد الشخصي الخاص",
             title_ar="خدمة مساعد شخصي خاص على مدار 24 ساعة لتلبية جميع احتياجاتك وتنسيق الوجبات والأنشطة."
         )
 
+        # Official Terms and Conditions Extracted from PDF Document
         TermsAndCindationsTitle.objects.create(
-            title="Ken Luxury Reef Terms of Service",
-            title_ar="الشروط والأحكام الخاصة بكِن للمرجان الفاخر"
+            title="General Terms and Conditions for Booking Ken Huts",
+            title_ar="الشروط والأحكام العامة لحجز أكواخ كِن"
         )
 
         TermsAndCindations.objects.create(
-            title="Booking and Reservation Rules",
-            title_ar="قواعد وإجراءات الحجز",
-            description="All bookings require valid identification and full payment confirmation prior to arrival.",
-            description_ar="تتطلب جميع الحجوزات إبراز هوية سارية وتأكيد الدفع الكامل قبل موعد الوصول."
+            title="Guest Responsibility for Damages and Losses",
+            title_ar="مسؤولية الضيف عن التلفيات والخسائر",
+            description="The guest assumes full responsibility for any material damages or losses occurring inside the hut or its facilities during the stay, whether intentional or resulting from misuse or negligence. In the event of property damage, Ken Huts management reserves the right to claim appropriate compensation based on repair or replacement costs. If payment is refused, management reserves the right to take legal action through competent authorities.",
+            description_ar="يتحمل الضيف كامل المسؤولية عن أي تلفيات أو خسائر مادية تحدث داخل الكوخ أو في مرافقه أثناء فترة الإقامة، سواء كانت متعمدة أو ناتجة عن سوء استخدام أو إهمال. في حال حدوث أي ضرر بالممتلكات، يحق لإدارة أكواخ كن المطالبة بالتعويض المناسب وفقاً لتكلفة الإصلاح أو الاستبدال. في حال رفض سداد التعويض، يحق للإدارة اتخاذ الإجراءات النظامية اللازمة عبر الجهات المختصة."
+        )
+
+        TermsAndCindations.objects.create(
+            title="Cancellation and Amendment Policy",
+            title_ar="سياسة الإلغاء والتعديل",
+            description="Reservations can be cancelled with a full refund within (14) business days if cancelled 24 hours or more before check-in. If cancelled less than 24 hours before check-in, 50% of the total booking amount will be deducted. In case of a no-show without prior notice, the full booking value may be charged.",
+            description_ar="يمكن إلغاء الحجز مع استرداد كامل المبلغ خلال (14) يوم عمل إذا تم الإلغاء قبل موعد الدخول بـ 24 ساعة أو أكثر. في حال تم الإلغاء قبل موعد الدخول بأقل من 24 ساعة، يتم خصم 50% من إجمالي مبلغ الحجز. في حال عدم الحضور دون إشعار مسبق، قد يتم احتساب قيمة الحجز كاملة."
+        )
+
+        TermsAndCindations.objects.create(
+            title="Adherence to Facility Usage",
+            title_ar="الالتزام باستخدام المرافق",
+            description="Using the huts for any illegal activities or actions violating public order and morality is strictly prohibited. Moving furniture or changing electrical appliance locations without prior management approval is forbidden. Guests must maintain cleanliness, use facilities responsibly, and leave the hut in proper condition upon departure.",
+            description_ar="يُمنع استخدام الأكواخ لأي أنشطة غير مشروعة أو مخالفة للأنظمة والآداب العامة. يُمنع نقل الأثاث أو تغيير مواقع الأجهزة الكهربائية دون موافقة مسبقة من الإدارة. يلتزم الضيوف بالحفاظ على نظافة المكان واستخدام المرافق بشكل مسؤول، وإعادة الكوخ بالحالة المناسبة عند المغادرة."
+        )
+
+        TermsAndCindations.objects.create(
+            title="Guest and Visitor Capacity",
+            title_ar="عدد الضيوف والزوار",
+            description="Guests must adhere to the guest capacity specified in the reservation. If welcoming additional visitors is desired, prior coordination and approval from management is required. Management reserves the right to deny entry to any additional visitors exceeding the hut's maximum capacity.",
+            description_ar="يجب الالتزام بعدد الضيوف المحدد في الحجز. في حال الرغبة باستقبال زوار إضافيين، يجب التنسيق المسبق مع الإدارة وأخذ الموافقة. تحتفظ الإدارة بحق رفض دخول أي عدد إضافي في حال تجاوز الطاقة الاستيعابية للكوخ."
+        )
+
+        TermsAndCindations.objects.create(
+            title="Quiet Hours and Privacy Respect",
+            title_ar="الالتزام بالهدوء واحترام الخصوصية",
+            description="At Ken Huts, we strive to provide a quiet, comfortable environment for all guests. Please maintain an appropriate noise level and avoid disturbing others. Respect the privacy of fellow guests and surrounding properties.",
+            description_ar="نحرص في أكواخ كن على توفير بيئة هادئة ومريحة لجميع الضيوف، لذا نرجو الالتزام بمستوى صوت مناسب وعدم إزعاج الآخرين. يُرجى احترام خصوصية الضيوف الآخرين والممتلكات المحيطة."
+        )
+
+        TermsAndCindations.objects.create(
+            title="Management Rights",
+            title_ar="أحقية الإدارة",
+            description="Ken Huts management reserves the right to cancel any reservation if false information is provided or terms are violated. Management also holds the right to terminate a stay in the event of non-compliance with rules or property damage.",
+            description_ar="تحتفظ إدارة أكواخ كن بالحق في إلغاء أي حجز في حال تقديم معلومات غير صحيحة أو مخالفة الشروط. كما يحق للإدارة إنهاء الإقامة في حال عدم الالتزام بالأنظمة أو الإضرار بالممتلكات."
+        )
+
+        TermsAndCindations.objects.create(
+            title="Personal Belongings Liability",
+            title_ar="المسؤولية الشخصية",
+            description="Ken Huts management is not liable for any loss, theft, or damage to personal belongings of guests during their stay.",
+            description_ar="إدارة أكواخ كن غير مسؤولة عن فقدان أو تلف أي ممتلكات شخصية للضيوف أثناء فترة الإقامة."
         )
 
         Partners.objects.create(image="uploads/partner/partner1.png")
