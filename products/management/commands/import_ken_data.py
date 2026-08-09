@@ -372,7 +372,11 @@ class Command(BaseCommand):
             admin_user.is_active = True
             admin_user.save()
             self.stdout.write("Ensured admin user admin@kenluxuryreef.com")
+        from django.core.management import call_command
+        try:
+            call_command('seed_ken_data')
+            self.stdout.write(self.style.SUCCESS("Ran seed_ken_data to ensure rich bilingual content."))
         except Exception as e:
-            self.stdout.write(f"Admin user creation warning: {e}")
+            self.stdout.write(f"Seeder call note: {e}")
 
         self.stdout.write(self.style.SUCCESS("All ken_data reuploaded successfully with availability until 2026/12/31!"))
