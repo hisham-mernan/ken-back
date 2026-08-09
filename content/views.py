@@ -6,6 +6,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import generics, permissions
 from rest_framework.views import APIView
+from django.core.cache import cache
+
 # ----- Story Views -----
 class StoryListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
@@ -21,17 +23,22 @@ class StoryDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 # ----- Our Vision -----
 
-
-
-
-
-
-
 class FAQListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
     
     queryset = FAQ.objects.all().order_by('-id')
     serializer_class = FAQSerializer
+
+    def list(self, request, *args, **kwargs):
+        cache_key = "content_faq_list"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            res = Response(cached)
+        else:
+            res = super().list(request, *args, **kwargs)
+            cache.set(cache_key, res.data, 1800)
+        res['Cache-Control'] = 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200'
+        return res
 
 class FAQDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdminForUnsafeMethods] 
@@ -109,6 +116,17 @@ class AboutUsListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return AboutUs.objects.order_by('-created_at')[:1]
+
+    def list(self, request, *args, **kwargs):
+        cache_key = "content_about_us_list"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            res = Response(cached)
+        else:
+            res = super().list(request, *args, **kwargs)
+            cache.set(cache_key, res.data, 1800)
+        res['Cache-Control'] = 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200'
+        return res
 
     def create(self, request, *args, **kwargs):
         if AboutUs.objects.exists():

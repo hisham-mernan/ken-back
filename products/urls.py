@@ -1,7 +1,9 @@
 from django.urls import path
 from .views import *
+from .homepage_views import HomepageDataAPIView
 
 urlpatterns = [
+    path('homepage/', HomepageDataAPIView.as_view(), name='homepage-combined'),
     # Hut
     path('huts-home/list/', HutListHomeAPIView.as_view(), name='hut-list-create'),
     path('huts-list/', HutListAPIView.as_view(), name='hut-list-create'),
