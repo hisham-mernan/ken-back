@@ -2601,6 +2601,7 @@ class PublicSeedKenDataView(APIView):
     def get(self, request):
         import traceback
         from django.core.management import call_command
+        from content.models import FAQ, AboutUs
         try:
             cache.clear()
             
