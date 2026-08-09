@@ -2602,12 +2602,30 @@ class PublicSeedKenDataView(APIView):
         import traceback
         from django.core.management import call_command
         try:
-            call_command('migrate', interactive=False)
             cache.clear()
+            
+            # Instantly update all prices to 5.00 SAR for testing
+            AvailableDateRanges.objects.all().update(price=5.00)
+            AvailableDateEvent.objects.all().update(price=5.00)
+            AvailableDateService.objects.all().update(price=5.00)
+            Event.objects.all().update(price=5.00)
+            Services.objects.all().update(price=5.00)
+            KenSpecialItems.objects.all().update(price=5.00)
 
             force = request.query_params.get('force') == 'true'
-            if force or not User.objects.filter(email='supplier1@kenluxuryreef.com').exists() or AvailableDateRanges.objects.filter(price__gt=10).exists():
+            if force or not Event.objects.filter(is_active=True).exists():
                 call_command('seed_ken_data')
+
+            # Ensure test accounts exist
+            if not User.objects.filter(email='supplier1@kenluxuryreef.com').exists():
+                u = User.objects.create(email='supplier1@kenluxuryreef.com', full_name='Red Sea Adventures', role='supplier', is_active=True, phone='+966500000001')
+                u.set_password('supplier123')
+                u.save()
+
+            if not User.objects.filter(email='guest1@kenluxuryreef.com').exists():
+                u = User.objects.create(email='guest1@kenluxuryreef.com', full_name='Guest One', role='user', is_active=True, phone='+966500000002')
+                u.set_password('guest123')
+                u.save()
 
             return Response({
                 "status": "success",
@@ -2618,6 +2636,7 @@ class PublicSeedKenDataView(APIView):
                     "services": Services.objects.count(),
                     "faqs": FAQ.objects.count(),
                     "about_us": AboutUs.objects.count(),
+                    "users": User.objects.count(),
                 }
             })
         except Exception as e:
