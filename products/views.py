@@ -96,15 +96,8 @@ class HutListAPIView(generics.ListCreateAPIView):
         )
 
     def list(self, request, *args, **kwargs):
-        page = request.query_params.get('page', '1')
-        cache_key = f"hut_list_page_{page}"
-        cached_data = cache.get(cache_key)
-        if cached_data is not None:
-            response = Response(cached_data)
-        else:
-            response = super().list(request, *args, **kwargs)
-            cache.set(cache_key, response.data, 900)
-        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        response = super().list(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
 
 class HutListHomeAPIView(generics.ListCreateAPIView):
@@ -121,14 +114,8 @@ class HutListHomeAPIView(generics.ListCreateAPIView):
         )
 
     def list(self, request, *args, **kwargs):
-        cache_key = "hut_list_home"
-        cached_data = cache.get(cache_key)
-        if cached_data is not None:
-            response = Response(cached_data)
-        else:
-            response = super().list(request, *args, **kwargs)
-            cache.set(cache_key, response.data, 900)
-        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        response = super().list(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
 
 

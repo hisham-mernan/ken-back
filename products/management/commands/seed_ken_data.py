@@ -219,6 +219,27 @@ class Command(BaseCommand):
         )
         hut3.promocode.add(promo1, promo3)
 
+        # Seed Hut Gallery Sub-Images
+        hut1_img1 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0082_2.jpg")
+        hut1_img2 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0083_2.jpg")
+        hut1_img3 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0096_2.jpg")
+        hut1_img4 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0101_2.jpg")
+        hut1.images.add(hut1_img1, hut1_img2, hut1_img3, hut1_img4)
+
+        hut2_img1 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0102_2.jpg")
+        hut2_img2 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0108_2.jpg")
+        hut2_img3 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0121_2.jpg")
+        hut2_img4 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0196_2.jpg")
+        hut2.images.add(hut2_img1, hut2_img2, hut2_img3, hut2_img4)
+
+        hut3_img1 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0198_2.jpg")
+        hut3_img2 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0201_2.jpg")
+        hut3_img3 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0202.jpg")
+        hut3_img4 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0218_2.jpg")
+        hut3_img5 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0224_2.jpg")
+        hut3_img6 = HutImages.objects.create(image="uploads/services/hut_image/DSC_0226_2.jpg")
+        hut3.images.add(hut3_img1, hut3_img2, hut3_img3, hut3_img4, hut3_img5, hut3_img6)
+
         # Available Date Ranges for Huts (until 2026-12-31)
         AvailableDateRanges.objects.create(huts=hut1, date_from="2026-01-01", date_to="2026-12-31", price=5.00)
         AvailableDateRanges.objects.create(huts=hut2, date_from="2026-01-01", date_to="2026-12-31", price=5.00)

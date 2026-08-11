@@ -88,16 +88,14 @@ class HutImageSerializer(serializers.ModelSerializer):
     def get_image(self, obj):
         if not obj.image:
             return None
-        val = str(obj.image)
+        val = str(obj.image.url) if hasattr(obj.image, 'url') else str(obj.image)
         if val.startswith("http://") or val.startswith("https://"):
             return val
-        try:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        except Exception:
-            return f"/media/{val}"
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(val)
+        media_url = getattr(settings, 'MEDIA_URL', 'https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/')
+        return media_url.rstrip('/') + '/' + val.lstrip('/')
 
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -337,8 +335,7 @@ class KenSpecialItemsListWebSerializer(serializers.ModelSerializer):
 
 
 class HutListHomeSerializer(serializers.ModelSerializer):
-    
-  
+    images = HutImageSerializer(many=True, read_only=True)
     main_image = serializers.ImageField(required=False)
     lowest_price=serializers.SerializerMethodField()
     total_reviews = serializers.SerializerMethodField()
@@ -352,11 +349,11 @@ class HutListHomeSerializer(serializers.ModelSerializer):
             'title_ar',
             'description',
             'description_ar',
-           
             'size',
             'rate',
             'total_reviews',
             'created_at',
+            'images',
             'main_image',
             'location',
             'max_kids_num',
