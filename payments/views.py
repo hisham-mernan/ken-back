@@ -131,20 +131,8 @@ class CreateCheckoutView(generics.CreateAPIView):
         else:
             unpaid_balance = Decimal("0")
 
-        amount = unpaid_balance if unpaid_balance > Decimal("0.00") else Decimal(str(booking.total_price or 0))
-
-        # Prevent creating a checkout session with zero/negative amount because HyperPay
-        # will reject it with "amount must be greater than 0.00".
-        if amount <= Decimal("0.00"):
-            return Response(
-                {
-                    'error': 'Invalid booking amount',
-                    'details': 'Booking total/not_paid is zero. Recalculate booking price before paying.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        amount = Decimal(str(amount))  # normalize to Decimal
+        # Override booking payment amount to 5 SAR for testing payment info flow as requested
+        amount = Decimal("5.00")
         amount_formatted = f"{amount:.2f}"
         
         # Get customer information from booking user
@@ -502,7 +490,7 @@ class VerifyPaymentView(generics.GenericAPIView):
                 
                 # Check if this payment covers the remaining amount (or full amount)
                 # Typically, payment_amount should equal not_paid for a full payment
-                is_full_payment = (payment_amount >= not_paid and not_paid > 0) or (payment_amount >= total_price and total_price > 0)
+                is_full_payment = (payment_amount >= not_paid and not_paid > 0) or (payment_amount >= total_price and total_price > 0) or payment_amount == Decimal('5.00')
                 
                 if is_full_payment:
                     # Full payment - mark as paid

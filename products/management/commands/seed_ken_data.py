@@ -142,11 +142,11 @@ class Command(BaseCommand):
 
         # 4. Seed Icons
         self.stdout.write("Seeding Icons...")
-        icon_wifi = Icon.objects.create(image="uploads/services/icons/wifi.png")
-        icon_pool = Icon.objects.create(image="uploads/services/icons/pool.png")
-        icon_ocean = Icon.objects.create(image="uploads/services/icons/ocean.png")
-        icon_bbq = Icon.objects.create(image="uploads/services/icons/bbq.png")
-        icon_ac = Icon.objects.create(image="uploads/services/icons/ac.png")
+        icon_wifi = Icon.objects.create(image="uploads/services/icons/Frame.png")
+        icon_pool = Icon.objects.create(image="uploads/services/icons/Frame_1.png")
+        icon_ocean = Icon.objects.create(image="uploads/services/icons/Frame_2.png")
+        icon_bbq = Icon.objects.create(image="uploads/services/icons/SVG.png")
+        icon_ac = Icon.objects.create(image="uploads/services/icons/SVG_1.png")
 
         # 5. Seed PromoCodes
         self.stdout.write("Seeding PromoCodes...")
@@ -164,7 +164,7 @@ class Command(BaseCommand):
             description_ar="استمتع بأقصى درجات الرفاهية والهدوء الساحلي فوق مياه البحر الأحمر الكريستالية مع سطح خاص وإطلالة بانورامية ساحرة.",
             size="large",
             rate=4.90,
-            main_image="uploads/services/hut_image/hut1.jpg",
+            main_image="uploads/services/hut_image/DSC_0046_2.jpg",
             max_kids_num=4,
             bedrooms_num=3,
             bathrooms_num=2,
@@ -185,7 +185,7 @@ class Command(BaseCommand):
             description_ar="ملاذ شاطئي خاص وساحر يتميز بملحق جاكوزي دافئ وإطلالة بانورامية كاملة على غروب البحر ودخول مباشر لغوص المرجان.",
             size="meduim",
             rate=4.85,
-            main_image="uploads/services/hut_image/hut2.jpg",
+            main_image="uploads/services/hut_image/DSC_0063_2.jpg",
             max_kids_num=2,
             bedrooms_num=2,
             bathrooms_num=2,
@@ -206,7 +206,7 @@ class Command(BaseCommand):
             description_ar="تحفتنا المعمارية الملكية فوق الماء بـ 4 غرف نوم وأرضية زجاجية شفافة لمشاهدة المرجان ومسبح خاص وتراس لتناول الطعام المتميز.",
             size="large",
             rate=5.00,
-            main_image="uploads/services/hut_image/hut3.jpg",
+            main_image="uploads/services/hut_image/DSC_0080_2.jpg",
             max_kids_num=4,
             bedrooms_num=4,
             bathrooms_num=3,
@@ -267,7 +267,18 @@ class Command(BaseCommand):
         )
         s_dates_qs = list(AvailableDateService.objects.filter(date__gte=start_d, date__lte=end_d))
 
-        for title, title_ar, desc, desc_ar, price, cap, supp, loc, hut in events_data:
+        event_img_list = [
+            "uploads/services/event_image/pexels-abdulmajeed-650857-18502900.jpg",
+            "uploads/services/event_image/pexels-dogu-tuncer-339534179-14538480.jpg",
+            "uploads/services/event_image/pexels-emine-11049269.jpg",
+            "uploads/services/event_image/pexels-enesersahin-36445415.jpg",
+            "uploads/services/event_image/pexels-halid-elosman-3328515-28161235.jpg",
+            "uploads/services/event_image/pexels-jdgromov-6769519.jpg",
+            "uploads/services/event_image/pexels-leeloothefirst-5264680.jpg",
+            "uploads/services/event_image/pexels-olia-danilevich-5742743.jpg"
+        ]
+
+        for idx, (title, title_ar, desc, desc_ar, price, cap, supp, loc, hut) in enumerate(events_data):
             ev = Event.objects.create(
                 supplier=supp,
                 title=title,
@@ -278,7 +289,7 @@ class Command(BaseCommand):
                 capacity=cap,
                 min_purchasable_quantity=1,
                 max_purchasable_quantity=5,
-                image="uploads/services/event_image/event1.jpg",
+                image=event_img_list[idx % len(event_img_list)],
                 location=loc,
                 hut=hut,
                 is_active=True,
@@ -301,28 +312,18 @@ class Command(BaseCommand):
             ("Floating Breakfast Tray in Private Pool", "صينية الإفطار العائمة في المسبح الخاص", "Instagram-worthy floating breakfast basket served right in your private plunge pool.", "صينية إفطار عائمة فاخرة في المسبح الخاص بالكوخ التقاط أجمل الصور الذكارية.", 5.00, 10, supplier2, hut3),
         ]
 
-        for title, title_ar, desc, desc_ar, price, cap, supp, hut in services_data:
-            sv = Services.objects.create(
-                supplier=supp,
-                title=title,
-                title_ar=title_ar,
-                description=desc,
-                description_ar=desc_ar,
-                price=price,
-                capacity=cap,
-                min_purchasable_quantity=1,
-                max_purchasable_quantity=5,
-                is_active=True,
-                is_delete=False,
-                hut=hut
-            )
-            sv.available_dates.set(s_dates_qs)ing all dining, spa, and sea activity reservations.", "مساعد شخصي خاص لتلبية طلباتك وتنسيق الوجبات وحجوزات السبا والأنشطة.", 5.00, 5, supplier1, hut3),
-            ("In-Hut Luxury Spa & Body Massage", "خدمة المساج والاسترخاء الملكي داخل الكوخ", "60-minute relaxing aromatherapy massage delivered by certified wellness therapists inside your hut.", "جلسة مساج وعلاج بالزيوت العطرية لمدة 60 دقيقة يقدمها أخصائيون محترفون داخل كوخك.", 5.00, 8, supplier1, hut2),
-            ("Executive Private Airport Chauffeur", "خدمة التوصيل الخاص السريع من وإلى المطار", "Luxury SUV transfer with private driver between King Abdulaziz Airport and Ken Reef.", "توصيل بدرجة رجال الأعمال وسيارة فاخرة وسائق خاص من وإلى المطار.", 5.00, 10, supplier2, hut1),
-            ("Floating Breakfast Tray in Private Pool", "صينية الإفطار العائمة في المسبح الخاص", "Instagram-worthy floating breakfast basket served right in your private plunge pool.", "صينية إفطار عائمة فاخرة في المسبح الخاص بالكوخ التقاط أجمل الصور الذكارية.", 5.00, 10, supplier2, hut3),
+        service_img_list = [
+            "uploads/services/service_image/spa.jpg",
+            "uploads/services/service_image/dining.jpg",
+            "uploads/services/hut_image/DSC_0196_2.jpg",
+            "uploads/services/hut_image/DSC_0201_2.jpg",
+            "uploads/services/hut_image/DSC_0224_2.jpg",
+            "uploads/services/event_image/pexels-dogu-tuncer-339534179-14538480.jpg",
+            "uploads/services/event_image/pexels-emine-11049269.jpg",
+            "uploads/services/event_image/pexels-enesersahin-36445415.jpg"
         ]
 
-        for title, title_ar, desc, desc_ar, price, cap, supp, hut in services_data:
+        for idx, (title, title_ar, desc, desc_ar, price, cap, supp, hut) in enumerate(services_data):
             sv = Services.objects.create(
                 supplier=supp,
                 title=title,
@@ -333,17 +334,12 @@ class Command(BaseCommand):
                 capacity=cap,
                 min_purchasable_quantity=1,
                 max_purchasable_quantity=5,
+                image=service_img_list[idx % len(service_img_list)],
                 is_active=True,
                 is_delete=False,
                 hut=hut
             )
-            curr = start_d
-            s_dates = []
-            while curr <= end_d:
-                s_obj, _ = AvailableDateService.objects.get_or_create(date=curr, defaults={'price': price, 'capacity': cap, 'is_active': True})
-                s_dates.append(s_obj)
-                curr += timedelta(days=1)
-            sv.available_dates.set(s_dates)
+            sv.available_dates.set(s_dates_qs)
 
         # 9. Seed Ken Special Items
         self.stdout.write("Seeding Ken Special Items...")
@@ -368,7 +364,10 @@ class Command(BaseCommand):
             vission="To be the first choice and trusted reference in designing and crafting countryside huts.",
             vission_ar="أن نكون الخيار الأول والمرجع الموثوق في تصميم وبناء الأكواخ الريفية.",
             mission="Preserving the spirit of the land and its family heritage in every detail while delivering uncompromised quality, natural harmony, and authentic Saudi hospitality.",
-            mission_ar="نحافظ على روح الأرض وتاريخها العائلي في كل تفصيلة، ونلتزم بتقديم خدمات راقية، الجودة والتميز، التناغم مع الطبيعة، والأصالة والضيافة."
+            mission_ar="نحافظ على روح الأرض وتاريخها العائلي في كل تفصيلة، ونلتزم بتقديم خدمات راقية، الجودة والتميز، التناغم مع الطبيعة، والأصالة والضيافة.",
+            mission_image="uploads/content/about_us/mission.jpg",
+            vision_image="uploads/content/about_us/vision.jpg",
+            main_image="uploads/content/about_us/main.jpg"
         )
 
         # 12 Official Bilingual FAQs
@@ -522,11 +521,12 @@ class Command(BaseCommand):
             description_ar="تحتفظ إدارة أكواخ كن بالحق في إلغاء أي حجز في حال تقديم معلومات غير صحيحة أو مخالفة الشروط. كما يحق للإدارة إنهاء الإقامة في حال عدم الالتزام بالأنظمة أو الإضرار بالممتلكات."
         )
 
-        TermsAndCindations.objects.create(
-            title="Personal Belongings Liability",
-            title_ar="المسؤولية الشخصية",
-            description="Ken Huts management is not liable for any loss, theft, or damage to personal belongings of guests during their stay.",
-            description_ar="إدارة أكواخ كن غير مسؤولة عن فقدان أو تلف أي ممتلكات شخصية للضيوف أثناء فترة الإقامة."
+        Story.objects.create(
+            title="The Heritage of Ken Sanctuary",
+            title_ar="قصة وروح مساحة كَن",
+            description="Over 40 years ago, this land was simply a vast space filled with cherished memories, carrying within it family stories and grandfathers' gatherings beneath the shade of trees. It belonged to our father, who cared for every inch of it over the decades.",
+            description_ar="قبل أكثر من 40 عامًا، كانت هذه الأرض مجرد مساحة واسعة مليئة بالذكريات، تحمل في طياتها قصص العائلة واجتماعات الأجداد تحت ظلال الأشجار. كانت ملكًا لوالدنا، الذي اعتنى بها طوال عقود.",
+            image="uploads/content/story/story1.jpg"
         )
 
         Partners.objects.create(image="uploads/partner/partner1.png")

@@ -82,7 +82,20 @@ class Command(BaseCommand):
             s = str(img_path)
             if s.startswith("http"):
                 s = s.replace("https://didujlgaqnfziazqooxo.supabase.co/storage/v1/object/public/media/", "")
-            return s.lstrip("/")
+            s = s.lstrip("/")
+
+            mapping = {
+                "uploads/services/hut_image/hut1.jpg": "uploads/services/hut_image/DSC_0046_2.jpg",
+                "uploads/services/hut_image/hut2.jpg": "uploads/services/hut_image/DSC_0063_2.jpg",
+                "uploads/services/hut_image/hut3.jpg": "uploads/services/hut_image/DSC_0080_2.jpg",
+                "uploads/services/event_image/event1.jpg": "uploads/services/event_image/pexels-abdulmajeed-650857-18502900.jpg",
+                "uploads/services/icons/wifi.png": "uploads/services/icons/Frame.png",
+                "uploads/services/icons/pool.png": "uploads/services/icons/Frame_1.png",
+                "uploads/services/icons/ocean.png": "uploads/services/icons/Frame_2.png",
+                "uploads/services/icons/bbq.png": "uploads/services/icons/SVG.png",
+                "uploads/services/icons/ac.png": "uploads/services/icons/SVG_1.png",
+            }
+            return mapping.get(s, s)
 
         # 5. Import Icons
         cur.execute("SELECT id, image FROM products_icon")
@@ -370,8 +383,9 @@ class Command(BaseCommand):
             admin_user.is_staff = True
             admin_user.is_superuser = True
             admin_user.is_active = True
-            admin_user.save()
-            self.stdout.write("Ensured admin user admin@kenluxuryreef.com")
+        except Exception as e:
+            self.stdout.write(f"Admin user creation note: {e}")
+
         from django.core.management import call_command
         try:
             call_command('seed_ken_data')

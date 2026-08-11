@@ -271,14 +271,8 @@ class RandomEventListAPIView(generics.ListAPIView):
         ).distinct().order_by('-created_at')[:10]
 
     def list(self, request, *args, **kwargs):
-        cache_key = "random_event_list"
-        cached_data = cache.get(cache_key)
-        if cached_data is not None:
-            response = Response(cached_data)
-        else:
-            response = super().list(request, *args, **kwargs)
-            cache.set(cache_key, response.data, 300)
-        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        response = super().list(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
 
 # class EventRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -485,14 +479,8 @@ class RandomServiceListAPIView(generics.ListAPIView):
         ).distinct().order_by('-id')[:10]
 
     def list(self, request, *args, **kwargs):
-        cache_key = "random_service_list"
-        cached_data = cache.get(cache_key)
-        if cached_data is not None:
-            response = Response(cached_data)
-        else:
-            response = super().list(request, *args, **kwargs)
-            cache.set(cache_key, response.data, 300)
-        response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        response = super().list(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
     
     

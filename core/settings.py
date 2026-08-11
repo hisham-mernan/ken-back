@@ -274,7 +274,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # Media files for uploads (Use Supabase CDN by default, /tmp for local filesystem)
 MEDIA_URL = os.getenv("MEDIA_URL")
 if not MEDIA_URL or MEDIA_URL == "/media/":
-    MEDIA_URL = "https://didujlgaqnfziazqooxo.supabase.co/storage/v1/object/public/media/"
+    MEDIA_URL = "https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/"
 if os.getenv("VERCEL") or os.getenv("DATABASE_URL"):
     MEDIA_ROOT = "/tmp/media"
 else:

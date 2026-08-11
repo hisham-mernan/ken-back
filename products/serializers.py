@@ -450,6 +450,7 @@ class HutListSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     location = LocationSerializer(required=False)
     available_dates = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     date = serializers.ListField(
         child=serializers.DateField(format="%Y-%m-%d"),
         write_only=True,
@@ -459,7 +460,6 @@ class EventSerializer(serializers.ModelSerializer):
     notes = EventNoteSerializer(source='event_note', many=True, read_only=True)
     includes = EventIncludeSerializer(source='event_include', many=True, read_only=True)
 
-  
     hut = HutDropDownSerializer(read_only=True)
 
     class Meta:
@@ -470,6 +470,18 @@ class EventSerializer(serializers.ModelSerializer):
             'location', 'available_dates', 'date',
             'is_active', 'is_delete','hut',"notes","includes"
         ]
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        url = str(obj.image.url) if hasattr(obj.image, 'url') else str(obj.image)
+        if url.startswith('http://') or url.startswith('https://'):
+            return url
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(url)
+        media_url = getattr(settings, 'MEDIA_URL', 'https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/')
+        return media_url.rstrip('/') + '/' + url.lstrip('/')
 
     def get_available_dates(self, obj):
         today = date.today()
@@ -587,6 +599,7 @@ class EventAdminSerializer(serializers.ModelSerializer):
 class ServiceSerializer(serializers.ModelSerializer):
     # available_dates = AvailableDateSerializer(many=True, read_only=True)
     supplier = serializers.CharField(source='supplier.full_name', read_only=True)
+    image = serializers.SerializerMethodField()
     hut_id = serializers.PrimaryKeyRelatedField(
         source='hut',
         queryset=Hut.objects.all(),
@@ -610,6 +623,18 @@ class ServiceSerializer(serializers.ModelSerializer):
             'min_purchasable_quantity', 'max_purchasable_quantity', 'date','hut_id','hut','is_active',"is_delete"
         ]
         read_only_fields = ['id', 'available_dates']
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        url = str(obj.image.url) if hasattr(obj.image, 'url') else str(obj.image)
+        if url.startswith('http://') or url.startswith('https://'):
+            return url
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(url)
+        media_url = getattr(settings, 'MEDIA_URL', 'https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/')
+        return media_url.rstrip('/') + '/' + url.lstrip('/')
     
 
     def create(self, validated_data):
