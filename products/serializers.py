@@ -1105,6 +1105,7 @@ class UpComingBookingSerializer(serializers.ModelSerializer):
     # special_items_tickets_count = serializers.SerializerMethodField()
     booking_price = serializers.SerializerMethodField()
     extension_price = serializers.SerializerMethodField()
+    qr_code_image = serializers.SerializerMethodField()
 
 
     class Meta:
@@ -1118,6 +1119,30 @@ class UpComingBookingSerializer(serializers.ModelSerializer):
             'qr_code_image', 'invoice_url'
         ]
         read_only_fields = ['total_price', 'paid', 'not_paid', 'created_at', 'status', 'dates',]
+
+    def get_qr_code_image(self, obj):
+        if not obj.qr_code_image:
+            from .utils import generate_qr_code_image
+            try:
+                qr_data = str(obj.id)
+                qr_img = generate_qr_code_image(qr_data)
+                obj.qr_code = qr_data
+                obj.qr_code_image.save(f"booking_{obj.id}_qr.png", qr_img, save=False)
+                obj.is_qr_genereated = True
+                Booking.objects.filter(pk=obj.pk).update(
+                    qr_code=qr_data,
+                    is_qr_genereated=True,
+                    qr_code_image=obj.qr_code_image.name
+                )
+            except Exception as e:
+                print(f"Failed to generate QR code on the fly for booking {obj.id}: {e}")
+                return None
+
+        val = str(obj.qr_code_image.url) if hasattr(obj.qr_code_image, 'url') else str(obj.qr_code_image)
+        if val.startswith("http://") or val.startswith("https://"):
+            return val
+        media_url = getattr(settings, 'MEDIA_URL', 'https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/')
+        return media_url.rstrip('/') + '/' + val.lstrip('/')
 
     # def get_dates(self, obj):
     #     # Pick the BookingDate with is_extra=False, is_paid=True, closest upcoming
@@ -1375,6 +1400,7 @@ class BookingForPaymnetSerializer(serializers.ModelSerializer):
     events_tickets_count = serializers.SerializerMethodField()
     services_tickets_count = serializers.SerializerMethodField()
     special_items_tickets_count = serializers.SerializerMethodField()
+    qr_code_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -1387,6 +1413,30 @@ class BookingForPaymnetSerializer(serializers.ModelSerializer):
             'qr_code_image', 'invoice_url'
         ]
         read_only_fields = ['total_price', 'paid', 'not_paid', 'created_at', 'status', 'dates']
+
+    def get_qr_code_image(self, obj):
+        if not obj.qr_code_image:
+            from .utils import generate_qr_code_image
+            try:
+                qr_data = str(obj.id)
+                qr_img = generate_qr_code_image(qr_data)
+                obj.qr_code = qr_data
+                obj.qr_code_image.save(f"booking_{obj.id}_qr.png", qr_img, save=False)
+                obj.is_qr_genereated = True
+                Booking.objects.filter(pk=obj.pk).update(
+                    qr_code=qr_data,
+                    is_qr_genereated=True,
+                    qr_code_image=obj.qr_code_image.name
+                )
+            except Exception as e:
+                print(f"Failed to generate QR code on the fly for booking {obj.id}: {e}")
+                return None
+
+        val = str(obj.qr_code_image.url) if hasattr(obj.qr_code_image, 'url') else str(obj.qr_code_image)
+        if val.startswith("http://") or val.startswith("https://"):
+            return val
+        media_url = getattr(settings, 'MEDIA_URL', 'https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/')
+        return media_url.rstrip('/') + '/' + val.lstrip('/')
 
     def get_dates(self, obj):
         # Pick the BookingDate with is_extra=False, is_paid=True, closest upcoming

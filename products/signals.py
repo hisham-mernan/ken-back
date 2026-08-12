@@ -324,6 +324,11 @@ def mark_related_as_paid(sender, instance, **kwargs):
                 instance.qr_code = qr_data
                 instance.qr_code_image.save(f"booking_{instance.id}_qr.png", qr_image, save=False)
                 instance.is_qr_genereated = True
+                sender.objects.filter(pk=instance.pk).update(
+                    qr_code=qr_data,
+                    is_qr_genereated=True,
+                    qr_code_image=instance.qr_code_image.name
+                )
                 print(f"[Signal] QR code generated for booking {instance.id}")
             except Exception as qr_error:
                 print(f"[Signal] Failed to generate QR code for booking {instance.id}: {str(qr_error)}")
