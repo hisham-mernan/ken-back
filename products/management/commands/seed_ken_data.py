@@ -482,17 +482,46 @@ class Command(BaseCommand):
             description_ar="قبل أكثر من 40 عامًا، كانت هذه الأرض مجرد مساحة واسعة مليئة بالذكريات، تحمل في طياتها قصص العائلة واجتماعات الأجداد تحت ظلال الأشجار. كانت ملكًا لوالدنا، الذي اعتنى بها طوال عقود، محبًا لكل شبر فيها، مترددًا في التخلي عنها رغم تغير الأزمان. وفي يوم من الأيام، قرر أن يمنحنا الخيار، قائلاً: \"افعلوا بها ما ترونه مناسبًا.\" من هنا، ولدت فكرة بناء أكواخ سياحية، تعكس بساطة الطبيعة ودفء الضيافة، لتكون ملاذًا لكل من يبحث عن الهدوء، والجمال، والتجربة الأصيلة وسط الطبيعة."
         )
 
+        # Seed 3 Services matching reference design
+        OurService.objects.all().delete()
         OurService.objects.create(
-            title="Natural Wood Craftsmanship / خشب طبيعي وبناء سعودي",
-            title_ar="خشب طبيعي وبناء بأيدي سعودية",
-            description="High-grade natural wood structures built by Saudi hands in strategic scenic locations with smart keyless entry.",
-            description_ar="أكواخ مصممة بخشب طبيعي فاخر وبُنيت بأيدي سعودية في مواقع استراتيجية مميزة ومزودة بنظام الدخول الذكي."
+            title="Build",
+            title_ar="بناء وتشييد",
+            description="Natural wood structures and authentic eco-huts built by Saudi hands in scenic locations.",
+            description_ar="أكواخ ومباني خشبية طبيعية فاخرة تم بناؤها بأيدي سعودية في مواقع طبيعية ساحرة.",
+            image="uploads/services/service_image/tree_icon.png"
+        )
+        OurService.objects.create(
+            title="Modern Spaces",
+            title_ar="مساحة حديثة",
+            description="Luxurious modern interior spaces tailored with high-grade natural timber and smart amenities.",
+            description_ar="تصميم مساحات حديثة وعصرية مجهزة بلمسات الخشب الطبيعي وأرقى مستويات الراحة.",
+            image="uploads/services/service_image/wood_icon.png"
+        )
+        OurService.objects.create(
+            title="Operation & Services",
+            title_ar="إدارة وتشغيل",
+            description="Full-service resort operation, housekeeping, private dining, wellness, and eco-retreat management.",
+            description_ar="خدمات تشغيل وإدارة كاملة للمنتجعات والأكواخ مع الضيافة الفاخرة والصيانة المستمرة.",
+            image="uploads/services/service_image/bucket_icon.png"
         )
 
-        SpecailAboutUs.objects.create(
-            title="What Sets Ken Apart / ما يميّز أكواخ كِن",
-            title_ar="خشب طبيعي - دخول ذكي - بُني بأيدي سعودية - موقع استراتيجي - تجربة كوخ فاخرة"
-        )
+        # Seed 6 Special About Us Banners matching reference design
+        SpecailAboutUs.objects.all().delete()
+        special_items_data = [
+            ("BUILT BY SAUDI HANDS", "بُني بأيدي سعودية", "uploads/content/about_us/main.jpg"),
+            ("LUXURIOUS EXPERIENCE", "تجربة كوخ فاخرة", "uploads/services/hut_image/DSC_0046_2.jpg"),
+            ("STRATEGIC LOCATION", "موقع استراتيجي", "uploads/content/story/story1.jpg"),
+            ("FAMILY PROJECT", "مشروع عائلي", "uploads/services/service_image/dining.jpg"),
+            ("SMART ENTRY", "دخول ذكي", "uploads/services/hut_image/DSC_0080_2.jpg"),
+            ("NATURAL WOOD", "خشب طبيعي", "uploads/services/service_image/spa.jpg"),
+        ]
+        for t_en, t_ar, img_path in special_items_data:
+            SpecailAboutUs.objects.create(
+                title=t_en,
+                title_ar=t_ar,
+                image=img_path
+            )
 
         # Official Terms and Conditions Extracted from PDF Document
         TermsAndCindationsTitle.objects.create(

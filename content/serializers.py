@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.conf import settings
 from .models import *
 
 class StorySerializer(serializers.ModelSerializer):
@@ -20,14 +21,36 @@ class AboutUsSerializer(serializers.ModelSerializer):
         
         
 class OurServiceSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = OurService
         fields = '__all__'
 
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        val = str(obj.image.url) if hasattr(obj.image, 'url') else str(obj.image)
+        if val.startswith("http://") or val.startswith("https://"):
+            return val
+        media_url = getattr(settings, 'MEDIA_URL', 'https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/')
+        return media_url.rstrip('/') + '/' + val.lstrip('/')
+
 class SpecailAboutUsSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = SpecailAboutUs
         fields = '__all__'
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        val = str(obj.image.url) if hasattr(obj.image, 'url') else str(obj.image)
+        if val.startswith("http://") or val.startswith("https://"):
+            return val
+        media_url = getattr(settings, 'MEDIA_URL', 'https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/')
+        return media_url.rstrip('/') + '/' + val.lstrip('/')
         
         
         
