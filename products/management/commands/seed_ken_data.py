@@ -181,8 +181,8 @@ class Command(BaseCommand):
             id=3,
             title="Malath Hut",
             title_ar="كوخ ملاذ",
-            description="An intimate beachfront sanctuary featuring panoramic ocean sunsets, private heated jacuzzi, and direct reef snorkeling access.",
-            description_ar="ملاذ شاطئي خاص وساحر يتميز بملحق جاكوزي دافئ وإطلالة بانورامية كاملة على غروب البحر ودخول مباشر لغوص المرجان.",
+            description="Spacious 2-bedroom countryside sanctuary with private heated jacuzzi, rustic fireplace, and panoramic mountain views.",
+            description_ar="ملاذ ريفي يتكون من غرفتي نوم مع جاكوزي خاص مجهز بنظام التدفئة وموقد نار وتراس بإطلالة جبلية ساحرة.",
             size="meduim",
             rate=4.85,
             main_image="uploads/services/hut_image/DSC_0063_2.jpg",
@@ -202,8 +202,8 @@ class Command(BaseCommand):
             id=4,
             title="Qimma Hut",
             title_ar="كوخ قمة",
-            description="Our flagship 4-bedroom overwater masterpiece with transparent glass floor viewing gallery, private plunge pool, and gourmet dining space.",
-            description_ar="تحفتنا المعمارية الملكية فوق الماء بـ 4 غرف نوم وأرضية زجاجية شفافة لمشاهدة المرجان ومسبح خاص وتراس لتناول الطعام المتميز.",
+            description="Our flagship 4-bedroom luxury timber masterpiece with handcrafted wood interiors, private outdoor lounge, campfire pit, and gourmet dining space.",
+            description_ar="تحفتنا المعمارية الملكية بـ 4 غرف نوم وتصاميم خشبية فاخرة ومجلس خارجي خاص وموقد نار وتراس لتناول الطعام المتميز.",
             size="large",
             rate=5.00,
             main_image="uploads/services/hut_image/DSC_0080_2.jpg",
@@ -245,31 +245,31 @@ class Command(BaseCommand):
         AvailableDateRanges.objects.create(huts=hut2, date_from="2026-01-01", date_to="2026-12-31", price=5.00)
         AvailableDateRanges.objects.create(huts=hut3, date_from="2026-01-01", date_to="2026-12-31", price=5.00)
 
-        # Hut Services & Activities
+        # Hut Services & Activities (On-Land Countryside Eco-Resort)
         HutMainService.objects.create(hut=hut1, icon=icon_wifi, description="High-Speed Satellite Wi-Fi", description_ar="إنترنت فضائي سريع جداً", is_extra=False)
-        HutMainService.objects.create(hut=hut1, icon=icon_ocean, description="Private Sea View Deck", description_ar="سطح خاص بجلوس على البحر", is_extra=False)
+        HutMainService.objects.create(hut=hut1, icon=icon_ocean, description="Private Garden View Deck", description_ar="سطح خاص بجلوس على الحديقة", is_extra=False)
         HutMainService.objects.create(hut=hut1, icon=icon_bbq, description="Private BBQ Set & Chef", description_ar="طقم شواء خاص وشيف عند الطلب", is_extra=True)
-        HutActivity.objects.create(hut=hut1, description="Coral Reef Snorkeling & Kayaking", description_ar="غوص الشعب المرجانية وقوارب الكاياك")
+        HutActivity.objects.create(hut=hut1, description="Nature Walking & Outdoor Campfire", description_ar="جولات المشي في الطبيعة والسمر حول شبة النار")
 
         HutMainService.objects.create(hut=hut2, icon=icon_pool, description="Private Heated Jacuzzi", description_ar="جاكوزي خاص مجهز بنظام التدفئة", is_extra=False)
         HutMainService.objects.create(hut=hut2, icon=icon_ac, description="Smart Climate Control", description_ar="تكييف ذكي متكامل", is_extra=False)
-        HutActivity.objects.create(hut=hut2, description="Sunset Yacht Tours & Paddleboarding", description_ar="جولات اليخت وقت الغروب والتجديف")
+        HutActivity.objects.create(hut=hut2, description="Mountain Sunset Watching & Coffee Tasting", description_ar="مشاهدة الغروب الجبلي وتذوق القهوة السعودية")
 
-        HutMainService.objects.create(hut=hut3, icon=icon_ocean, description="Glass Floor Glass Reef Window", description_ar="نافذة أرضية زجاجية لمشاهدة الشعب المرجانية", is_extra=False)
-        HutMainService.objects.create(hut=hut3, icon=icon_pool, description="Overwater Infinity Pool", description_ar="مسبح انفينيتي ملكي فوق الماء", is_extra=False)
-        HutActivity.objects.create(hut=hut3, description="Deep Sea Fishing & Scuba Expeditions", description_ar="رحلات الصيد البحري والغوص الحر")
+        HutMainService.objects.create(hut=hut3, icon=icon_ocean, description="Panoramic Mountain Window", description_ar="إطلالة بانورامية على الجبال والحديقة", is_extra=False)
+        HutMainService.objects.create(hut=hut3, icon=icon_pool, description="Private Heated Pool", description_ar="مسبح دافئ خاص", is_extra=False)
+        HutActivity.objects.create(hut=hut3, description="Stargazing & Outdoor Barbecue Gatherings", description_ar="رصد النجوم بجلسات خارجية ومأدبة شواء")
 
-                # 7. Seed Expanded Events (8 Events)
-        self.stdout.write("Seeding 8+ Expanded Events...")
+        # 7. Seed Expanded Events (8 Events with Actual On-Land Hut Images)
+        self.stdout.write("Seeding 8+ Expanded Events with actual hut images...")
         events_data = [
-            ("Red Sea Sunset BBQ and Marine Gala", "حفل عشاء وشواء غروب البحر الأحمر", "An unforgettable evening featuring freshly grilled seafood, live acoustic melodies, and guided night ocean observation.", "أمسية ساحرة لا تُنسى تتضمن مأكولات بحرية طازجة ومشوية، وعزف موسيقي حاد، ومراقبة الكائنات البحرية ليلاً.", 5.00, 15, supplier1, loc1, hut1),
-            ("Reef Diving and Coral Conservation Tour", "جولة الغوص واستكشاف شعب المرجان", "Guided scuba diving trip led by marine biologists exploring untouched coral reefs and rare sea turtles.", "رحلة غوص استكشافية برفقة خبراء أحياء بحرية لاستكشاف الشعب المرجانية العذراء والسلاحف البحرية النادرة.", 5.00, 12, supplier1, loc2, hut2),
-            ("Stargazing Desert Shore Night", "ليلة التخييم ومراقبة النجوم على الشاطئ", "A magical night of telescope astronomy, traditional campfire tales, and traditional Saudi hospitality under the stars.", "ليلة ساحرة لرصد النجوم بالتلسكوبات، وحكايات السمر حول شبة النار والضيافة السعودية الأصيلة تحت النجوم.", 5.00, 20, supplier2, loc3, hut3),
-            ("Luxury Private Yacht Party and Live DJ", "حفل يخت خاص فاخر مع دي جي", "Exclusive sunset cruise on a 75ft motor yacht with live DJ performance and gourmet catering.", "رحلة يخت فاخر عند الغروب بطول 75 قدم مع دي جي مباشر ووجبات راقية مميزة.", 5.00, 10, supplier1, loc1, hut1),
-            ("Traditional Arabian Coastal Seafood Feast", "مأدبة الضيافة العربية للمأكولات البحرية", "Authentic coastal dining experience with heritage dishes, live cooking, and aromatic Arabic tea.", "تجربة طعام ساحلية أصيلة تشمل أطباقاً تراثية وطهواً مباشراً وشاي بالحبق والنعناع.", 5.00, 18, supplier2, loc3, hut3),
-            ("Underwater Marine Photography Workshop", "ورشة التصوير الاحترافي تحت الماء", "Professional masterclass on underwater ocean photography with top equipment provided.", "دورة احترافية متخصصة في التصوير الفوتوغرافي تحت الماء مع توفير أحدث الكاميرات والمعدات.", 5.00, 8, supplier1, loc2, hut2),
-            ("Full Moon Overwater Yoga and Meditation", "جلسة اليوجا والاسترخاء تحت اكتمال القمر", "Rejuvenating evening yoga and sound healing session on our overwater ocean deck.", "جلسة يوجا وعلاج بالصوت على المنصة الزجاجية فوق الماء تحت ضوء القمر.", 5.00, 15, supplier2, loc1, hut1),
-            ("Coastal Jet Ski and Water Sports Championship", "بطولة الرياضات البحرية والدبابات المائية", "Adrenaline-fueled water sports tournament with guided jet ski safari and professional instruction.", "بطولة رياضية مشوقة تشمل جولات الدبابات المائية والرياضات البحرية الممتعة.", 5.00, 15, supplier1, loc2, hut2),
+            ("Campfire Night & Arabian Barbecue Gala", "حفل شواء وسهرة السمر حول النار", "An unforgettable evening featuring freshly grilled meats, live acoustic melodies, and guided stargazing.", "أمسية ساحرة لا تُنسى تتضمن مأكولات مشوية طازجة، وعزف موسيقي حاد، ومراقبة النجوم ليلاً.", 5.00, 15, supplier1, loc1, hut1),
+            ("Countryside Nature Trail & Botanical Tour", "جولة المشي واستكشاف الطبيعة والحدائق", "Guided nature walking tour exploring untouched mountain trails and local flora.", "رحلة مشي استكشافية برفقة خبراء طبيعة لاستكشاف المسارات الجبلية والحدائق الغنّاء.", 5.00, 12, supplier1, loc2, hut2),
+            ("Stargazing Desert & Mountain Night", "ليلة التخييم ومراقبة النجوم في الجبل", "A magical night of telescope astronomy, traditional campfire tales, and traditional Saudi hospitality under the stars.", "ليلة ساحرة لرصد النجوم بالتلسكوبات، وحكايات السمر حول شبة النار والضيافة السعودية الأصيلة تحت النجوم.", 5.00, 20, supplier2, loc3, hut3),
+            ("Luxury Private Countryside Gathering & Live Music", "حفل ريفي خاص مع عروض موسيقية", "Exclusive sunset gathering at the resort with live acoustic music and gourmet catering.", "حفل خاص فاخر عند الغروب مع عروض موسيقية مباشرة ووجبات راقية مميزة.", 5.00, 10, supplier1, loc1, hut1),
+            ("Traditional Arabian Barbecue & Heritage Feast", "مأدبة الضيافة العربية والمأكولات التراثية", "Authentic countryside dining experience with heritage dishes, live cooking, and aromatic Arabic tea.", "تجربة طعام ريفية أصيلة تشمل أطباقاً تراثية وطهواً مباشراً وشاي بالحبق والنعناع.", 5.00, 18, supplier2, loc3, hut3),
+            ("Landscape & Architecture Photography Masterclass", "ورشة تصوير الأكواخ والطبيعة الاحترافية", "Professional masterclass focusing on nature and rustic timber hut architecture.", "دورة احترافية متخصصة في تصوير الأكواخ الخشبية والطبيعة الساحرة.", 5.00, 8, supplier1, loc2, hut2),
+            ("Full Moon Yoga & Meditation in Nature", "جلسة اليوجا والاسترخاء تحت ضوء القمر", "Rejuvenating evening yoga and sound healing session on our wooden deck surrounded by trees.", "جلسة يوجا وعلاج بالصوت على المنصة الخشبية وسط الطبيعة تحت ضوء القمر.", 5.00, 15, supplier2, loc1, hut1),
+            ("Mountain Hiking & Sunrise Trail Adventure", "مغامرة المشي الجبلي ومعايشة الشروق", "Early morning guided mountain trail hike with coffee brewing at the summit.", "مغامرة مشي جبلية مشوقة تشمل معايشة شروق الشمس وإعداد القهوة على القمة.", 5.00, 15, supplier1, loc2, hut2),
         ]
 
         start_d = date(2026, 1, 1)
@@ -289,14 +289,14 @@ class Command(BaseCommand):
         s_dates_qs = list(AvailableDateService.objects.filter(date__gte=start_d, date__lte=end_d))
 
         event_img_list = [
-            "uploads/services/event_image/pexels-abdulmajeed-650857-18502900.jpg",
-            "uploads/services/event_image/pexels-dogu-tuncer-339534179-14538480.jpg",
-            "uploads/services/event_image/pexels-emine-11049269.jpg",
-            "uploads/services/event_image/pexels-enesersahin-36445415.jpg",
-            "uploads/services/event_image/pexels-halid-elosman-3328515-28161235.jpg",
-            "uploads/services/event_image/pexels-jdgromov-6769519.jpg",
-            "uploads/services/event_image/pexels-leeloothefirst-5264680.jpg",
-            "uploads/services/event_image/pexels-olia-danilevich-5742743.jpg"
+            "uploads/services/hut_image/DSC_0046_2.jpg",
+            "uploads/services/hut_image/DSC_0080_2.jpg",
+            "uploads/services/hut_image/DSC_0082_2.jpg",
+            "uploads/services/hut_image/DSC_0083_2.jpg",
+            "uploads/services/hut_image/DSC_0096_2.jpg",
+            "uploads/services/hut_image/DSC_0101_2.jpg",
+            "uploads/services/hut_image/DSC_0102_2.jpg",
+            "uploads/services/hut_image/DSC_0108_2.jpg",
         ]
 
         for idx, (title, title_ar, desc, desc_ar, price, cap, supp, loc, hut) in enumerate(events_data):
@@ -320,28 +320,28 @@ class Command(BaseCommand):
             EventNote.objects.create(event=ev, description="Daily available departure", description_ar="مغادرة متاحة يومياً")
             ev.available_dates.set(e_dates_qs)
 
-        # 8. Seed Expanded Services (8 Services)
-        self.stdout.write("Seeding 8+ Expanded Services...")
+        # 8. Seed Expanded Services (8 Services with Actual On-Land Hut Images)
+        self.stdout.write("Seeding 8+ Expanded Services with actual hut images...")
         services_data = [
             ("Traditional Saudi Coffee & Dates Welcome", "خدمة القهوة السعودية والتمور الفاخرة", "Freshly brewed cardamon coffee served in royal dallah with premium Madinah dates.", "قهوة سعودية بالهيل والزعفران تُقدم بالدلة الملكية مع أفخر أنواع التمور الفاخرة.", 5.00, 20, supplier2, hut1),
-            ("Private Yacht Sunset Cruise", "رحلة اليخت الخاص عند الغروب", "90-minute private luxury yacht cruise around the reef islands with complimentary cold beverages.", "رحلة بياخت فاخر خاص لمدة 90 دقيقة حول جزر المرجان مع تقديم عصائر طازجة وخدمة ضيافة كاملة.", 5.00, 10, supplier1, hut2),
-            ("Rustic Breakfast Platter to Room", "وجبة الإفطار الريفي الفاخر في الكوخ", "Gourmet coastal breakfast delivered hot directly to your overwater terrace every morning.", "إفطار ساحلي فاخر يُقدم ساخناً يومياً مباشرة إلى تراس الكوخ الخاص بك.", 5.00, 15, supplier2, hut3),
-            ("Campfire Seafood Feast", "مأدبة المأكولات البحرية على الحطب", "Traditional wood-fired grilled lobster, hamour, and prawns served on the shore.", "استاكوزا وهامور وروبيان مشوي على الفحم والحطب يُقدم على الشاطئ مباشرة.", 5.00, 12, supplier2, hut1),
-            ("24/7 Private Butler & Concierge Service", "خدمة المساعد الشخصي الخاص على مدار الساعة", "Dedicated personal butler managing all dining, spa, and sea activity reservations.", "مساعد شخصي خاص لتلبية طلباتك وتنسيق الوجبات وحجوزات السبا والأنشطة.", 5.00, 5, supplier1, hut3),
+            ("Private Sunset Terrace Dinner", "عشاء خاص في تراس الكوخ عند الغروب", "Private luxury dining experience on your hut terrace with complimentary cold beverages.", "عشاء فاخر خاص على تراس الكوخ مع تقديم عصائر طازجة وخدمة ضيافة كاملة.", 5.00, 10, supplier1, hut2),
+            ("Rustic Breakfast Platter to Room", "وجبة الإفطار الريفي الفاخر في الكوخ", "Gourmet countryside breakfast delivered hot directly to your terrace every morning.", "إفطار ريفي فاخر يُقدم ساخناً يومياً مباشرة إلى تراس الكوخ الخاص بك.", 5.00, 15, supplier2, hut3),
+            ("Campfire Barbecue Feast", "مأدبة المشويات على الحطب والفحم", "Traditional wood-fired grilled meats and appetizers served outdoors.", "مشويات فاخرة على الفحم والحطب تُقدم في الجلسة الخارجية الكوخ مباشرة.", 5.00, 12, supplier2, hut1),
+            ("24/7 Private Butler & Concierge Service", "خدمة المساعد الشخصي الخاص على مدار الساعة", "Dedicated personal butler managing all dining, spa, and countryside activity reservations.", "مساعد شخصي خاص لتلبية طلباتك وتنسيق الوجبات وحجوزات السبا والأنشطة.", 5.00, 5, supplier1, hut3),
             ("In-Hut Luxury Spa & Body Massage", "خدمة المساج والاسترخاء الملكي داخل الكوخ", "60-minute relaxing aromatherapy massage delivered by certified wellness therapists inside your hut.", "جلسة مساج وعلاج بالزيوت العطرية لمدة 60 دقيقة يقدمها أخصائيون محترفون داخل كوخك.", 5.00, 8, supplier1, hut2),
-            ("Executive Private Airport Chauffeur", "خدمة التوصيل الخاص السريع من وإلى المطار", "Luxury SUV transfer with private driver between King Abdulaziz Airport and Ken Reef.", "توصيل بدرجة رجال الأعمال وسيارة فاخرة وسائق خاص من وإلى المطار.", 5.00, 10, supplier2, hut1),
+            ("Executive Private Airport Chauffeur", "خدمة التوصيل الخاص السريع من وإلى المطار", "Luxury SUV transfer with private driver between Airport and Ken Huts.", "توصيل بدرجة رجال الأعمال وسيارة فاخرة وسائق خاص من وإلى المطار.", 5.00, 10, supplier2, hut1),
             ("Floating Breakfast Tray in Private Pool", "صينية الإفطار العائمة في المسبح الخاص", "Instagram-worthy floating breakfast basket served right in your private plunge pool.", "صينية إفطار عائمة فاخرة في المسبح الخاص بالكوخ التقاط أجمل الصور الذكارية.", 5.00, 10, supplier2, hut3),
         ]
 
         service_img_list = [
-            "uploads/services/service_image/spa.jpg",
-            "uploads/services/service_image/dining.jpg",
+            "uploads/services/hut_image/DSC_0121_2.jpg",
             "uploads/services/hut_image/DSC_0196_2.jpg",
+            "uploads/services/hut_image/DSC_0198_2.jpg",
             "uploads/services/hut_image/DSC_0201_2.jpg",
+            "uploads/services/hut_image/DSC_0202.jpg",
+            "uploads/services/hut_image/DSC_0218_2.jpg",
             "uploads/services/hut_image/DSC_0224_2.jpg",
-            "uploads/services/event_image/pexels-dogu-tuncer-339534179-14538480.jpg",
-            "uploads/services/event_image/pexels-emine-11049269.jpg",
-            "uploads/services/event_image/pexels-enesersahin-36445415.jpg"
+            "uploads/services/hut_image/DSC_0226_2.jpg",
         ]
 
         for idx, (title, title_ar, desc, desc_ar, price, cap, supp, hut) in enumerate(services_data):
@@ -366,8 +366,8 @@ class Command(BaseCommand):
         self.stdout.write("Seeding Ken Special Items...")
         item1 = KenSpecialItems.objects.create(
             supplier=supplier1,
-            title="Premium Reef Snorkeling Kit",
-            title_ar="طقم سنوركلينج المرجان الفاخر",
+            title="Premium Handcrafted Timber Tea & Coffee Set",
+            title_ar="طقم تقديم القهوة والشاي المصنوع يدويًا من الخشب الفاخر",
             price=5.00,
             capacity=20,
             min_purchasable_quantity=1,
