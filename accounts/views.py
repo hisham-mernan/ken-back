@@ -66,16 +66,15 @@ class UserRegistrationView(generics.CreateAPIView):
         Timer(300.0, clear_otp, [user]).start()
 
         html_content = render_to_string('confirmation_mail.html', {
+            'user': user,
             'otp': otp,
             'domain': settings.FRONTEND_BASE_URL,
         })
 
-        import threading
-        threading.Thread(
-            target=send_email,
-            args=(user.email, "KEN OTP Confirmation", html_content),
-            daemon=True
-        ).start()
+        try:
+            send_email(user.email, "KEN OTP Confirmation", html_content)
+        except Exception as e:
+            logger.error("Failed to send registration OTP email to %s: %s", user.email, e)
 
         token = generate_jwt_token(user)
 
