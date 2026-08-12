@@ -126,13 +126,11 @@ class CreateCheckoutView(generics.CreateAPIView):
         # Figure out how much is left to pay:
         # - prefer the unpaid balance if it's a positive number
         # - otherwise fall back to the booking total
-        if getattr(booking, "not_paid", None):
-            unpaid_balance = Decimal(str(booking.not_paid))
+        if getattr(booking, "not_paid", None) and Decimal(str(booking.not_paid)) > 0:
+            amount = Decimal(str(booking.not_paid))
         else:
-            unpaid_balance = Decimal("0")
+            amount = Decimal(str(booking.total_price or "0.00"))
 
-        # Override booking payment amount to 5 SAR for testing payment info flow as requested
-        amount = Decimal("5.00")
         amount_formatted = f"{amount:.2f}"
         
         # Get customer information from booking user
@@ -489,8 +487,7 @@ class VerifyPaymentView(generics.GenericAPIView):
                 not_paid = booking.not_paid or Decimal('0.00')
                 
                 # Check if this payment covers the remaining amount (or full amount)
-                # Typically, payment_amount should equal not_paid for a full payment
-                is_full_payment = (payment_amount >= not_paid and not_paid > 0) or (payment_amount >= total_price and total_price > 0) or payment_amount == Decimal('5.00')
+                is_full_payment = (payment_amount >= not_paid and not_paid > 0) or (payment_amount >= total_price and total_price > 0)
                 
                 if is_full_payment:
                     # Full payment - mark as paid
