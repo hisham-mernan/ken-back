@@ -506,15 +506,15 @@ class Command(BaseCommand):
             image="uploads/services/service_image/bucket_icon.png"
         )
 
-        # Seed 6 Special About Us Banners matching reference design
+        # Seed 6 Special About Us Banners matching exact user uploaded images
         SpecailAboutUs.objects.all().delete()
         special_items_data = [
-            ("BUILT BY SAUDI HANDS", "بُني بأيدي سعودية", "uploads/content/about_us/main.jpg"),
-            ("LUXURIOUS EXPERIENCE", "تجربة كوخ فاخرة", "uploads/services/hut_image/DSC_0046_2.jpg"),
-            ("STRATEGIC LOCATION", "موقع استراتيجي", "uploads/content/story/story1.jpg"),
-            ("FAMILY PROJECT", "مشروع عائلي", "uploads/services/service_image/dining.jpg"),
-            ("SMART ENTRY", "دخول ذكي", "uploads/services/hut_image/DSC_0080_2.jpg"),
-            ("NATURAL WOOD", "خشب طبيعي", "uploads/services/service_image/spa.jpg"),
+            ("BUILT BY SAUDI HANDS", "بُني بأيدي سعودية", "uploads/content/special_about_us/hands_building.jpg"),
+            ("LUXURIOUS EXPERIENCE", "تجربة كوخ فاخرة", "uploads/content/special_about_us/luxury_huts.jpg"),
+            ("STRATEGIC LOCATION", "موقع استراتيجي", "uploads/content/special_about_us/desert_dunes.jpg"),
+            ("FAMILY PROJECT", "مشروع عائلي", "uploads/content/special_about_us/hands_building.jpg"),
+            ("SMART ENTRY", "دخول ذكي", "uploads/content/special_about_us/family_gazebo.jpg"),
+            ("NATURAL WOOD", "خشب طبيعي", "uploads/content/special_about_us/natural_wood_grain.jpg"),
         ]
         for t_en, t_ar, img_path in special_items_data:
             SpecailAboutUs.objects.create(
