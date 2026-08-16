@@ -8,7 +8,9 @@ class ProductsConfig(AppConfig):
     def ready(self):
         import products.signals
         import products.scheduler
-        
+        # Global pre_save hook that downscales uploaded images (all apps).
+        import core.image_optimization
+
         try:
             from products.models import Event
             if not Event.objects.filter(is_active=True).exists():

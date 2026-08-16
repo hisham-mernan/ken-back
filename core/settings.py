@@ -271,10 +271,40 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Media files for uploads (Use Supabase CDN by default, /tmp for local filesystem)
+# Media files for uploads
+# ------------------------
+# Uploads go to a public Supabase Storage bucket over its S3-compatible
+# endpoint. Set the SUPABASE_S3_* variables to enable that.
+#
+# With them unset, Django falls back to the local filesystem, which is the
+# behaviour this project has always had. Be aware that on Vercel MEDIA_ROOT is
+# /tmp, so the fallback does not survive a cold start -- it is only suitable for
+# local development.
+SUPABASE_S3_ENDPOINT = os.getenv("SUPABASE_S3_ENDPOINT")
+SUPABASE_S3_ACCESS_KEY_ID = os.getenv("SUPABASE_S3_ACCESS_KEY_ID")
+SUPABASE_S3_SECRET_ACCESS_KEY = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY")
+SUPABASE_S3_REGION = os.getenv("SUPABASE_S3_REGION")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "media")
+
+USE_SUPABASE_STORAGE = all(
+    [
+        SUPABASE_S3_ENDPOINT,
+        SUPABASE_S3_ACCESS_KEY_ID,
+        SUPABASE_S3_SECRET_ACCESS_KEY,
+    ]
+)
+
+# Public read base for the bucket, kept byte-identical to the URL the API has
+# always returned so serialized image paths do not change shape.
+SUPABASE_PUBLIC_BASE = os.getenv(
+    "SUPABASE_PUBLIC_BASE",
+    "https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public",
+)
+
 MEDIA_URL = os.getenv("MEDIA_URL")
 if not MEDIA_URL or MEDIA_URL == "/media/":
-    MEDIA_URL = "https://onzkkxvzuzkdcsckcxsp.supabase.co/storage/v1/object/public/media/"
+    MEDIA_URL = f"{SUPABASE_PUBLIC_BASE}/{SUPABASE_BUCKET}/"
+
 if os.getenv("VERCEL") or os.getenv("DATABASE_URL"):
     MEDIA_ROOT = "/tmp/media"
 else:
@@ -286,8 +316,41 @@ try:
 except Exception:
     pass
 
-# Enable WhiteNoise to serve compressed files
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+if USE_SUPABASE_STORAGE:
+    AWS_S3_ENDPOINT_URL = SUPABASE_S3_ENDPOINT
+    AWS_ACCESS_KEY_ID = SUPABASE_S3_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY = SUPABASE_S3_SECRET_ACCESS_KEY
+    AWS_STORAGE_BUCKET_NAME = SUPABASE_BUCKET
+    AWS_S3_REGION_NAME = SUPABASE_S3_REGION
+
+    # Supabase's S3 gateway speaks only path-style addressing and SigV4, and it
+    # has no concept of ACLs.
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_DEFAULT_ACL = None
+
+    # Hand out the public CDN URL rather than a signed S3 one.
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_CUSTOM_DOMAIN = (
+        f"{SUPABASE_PUBLIC_BASE.split('://', 1)[-1]}/{SUPABASE_BUCKET}"
+    )
+
+    # The existing objects are served no-cache, so every visit re-downloads
+    # them. Django suffixes colliding names rather than overwriting, so a URL
+    # keeps pointing at the same bytes and a long TTL is safe.
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "public, max-age=31536000"}
+    AWS_S3_FILE_OVERWRITE = False
+
+    _default_storage = {"BACKEND": "storages.backends.s3.S3Storage"}
+else:
+    _default_storage = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+
+# Django 4.2 replaced DEFAULT_FILE_STORAGE/STATICFILES_STORAGE with STORAGES,
+# and the two styles cannot be mixed -- so WhiteNoise is configured here too.
+STORAGES = {
+    "default": _default_storage,
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
 
 
 # Default primary key field type
