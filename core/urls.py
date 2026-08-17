@@ -19,8 +19,14 @@ from django.contrib import admin
 from django.urls import path,include
 from django.shortcuts import redirect
 
+from core.storage_check import storage_check
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # TEMPORARY: reports whether the SUPABASE_S3_* variables resolved in the
+    # running deployment, and can round-trip a 1x1 PNG through storage.
+    # Remove this line and core/storage_check.py once uploads are confirmed.
+    path("api/health/storage/", storage_check),
     path("", include('accounts.urls')),
     path("api/products/", include('products.urls')),
     path("api/content/", include('content.urls')),
