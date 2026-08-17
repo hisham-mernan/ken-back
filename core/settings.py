@@ -331,9 +331,18 @@ if USE_SUPABASE_STORAGE:
 
     # Hand out the public CDN URL rather than a signed S3 one.
     AWS_QUERYSTRING_AUTH = False
-    AWS_S3_CUSTOM_DOMAIN = (
-        f"{SUPABASE_PUBLIC_BASE.split('://', 1)[-1]}/{SUPABASE_BUCKET}"
-    )
+
+    # Keep the storage backend's URLs and MEDIA_URL in lockstep. Several
+    # serializers fall back to settings.MEDIA_URL when there is no request in
+    # context, so if the two disagree the API advertises image URLs on a host
+    # where nothing was ever written -- the upload succeeds and the image still
+    # looks missing. MEDIA_URL is the explicit operator setting, so it wins.
+    if MEDIA_URL.startswith(("http://", "https://")):
+        AWS_S3_CUSTOM_DOMAIN = MEDIA_URL.split("://", 1)[1].rstrip("/")
+    else:
+        AWS_S3_CUSTOM_DOMAIN = (
+            f"{SUPABASE_PUBLIC_BASE.split('://', 1)[-1]}/{SUPABASE_BUCKET}"
+        )
 
     # The existing objects are served no-cache, so every visit re-downloads
     # them. Django suffixes colliding names rather than overwriting, so a URL
