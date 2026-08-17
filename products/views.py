@@ -519,6 +519,9 @@ class HutRatingListAPIView(generics.ListAPIView):
 class BookingCreateView(generics.CreateAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+    # Booking without an account is allowed; the serializer then requires the
+    # guest contact details in place of a logged-in user.
+    permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
         user = request.user
@@ -547,11 +550,38 @@ class BookingCreateView(generics.CreateAPIView):
 
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+        data = dict(serializer.data)
+        booking = serializer.instance
+        if booking.is_guest_booking:
+            # The only way back to a guest booking: they have no account to log
+            # into, so the client needs this to pay and to reopen it later.
+            data["access_token"] = str(booking.access_token)
+        return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+
     def perform_create(self, serializer):
-        # attaches the current user and then calls serializer.save()
-        serializer.save(user=self.request.user)
+        # Attach the signed-in user, or leave it unset so the serializer stores
+        # the guest contact details instead.
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(user=user)
       
+
+class BookingByTokenView(generics.RetrieveAPIView):
+    """Open a booking using the token from the confirmation email.
+
+    A guest has no account, so this unguessable per-booking token is how they
+    reach their own booking and QR code. It is scoped to guest bookings only:
+    a booking that belongs to an account must be read through the authenticated
+    endpoints, so a leaked token can never expose a registered user's record.
+    """
+    serializer_class = BookingSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = "access_token"
+    lookup_url_kwarg = "access_token"
+
+    def get_queryset(self):
+        return Booking.objects.filter(user__isnull=True).select_related("hut")
+
 
 class BookingUpdateView(generics.RetrieveUpdateAPIView):
     queryset = Booking.objects.all()
@@ -1569,12 +1599,15 @@ class RefuseCancellationView(APIView):
         "cancellation_refuse.html",
         {
             "user": booking.user,
+            "contact_name": booking.contact_name,
             "booking": booking,
             "reason":reason,
             "domain": urlparse(settings.FRONTEND_BASE_URL).netloc or "ken.mernantech.com",
         }
     )
-        send_email(booking.user.email, "cancellation refuse!", html)
+        # A guest booking has no user row, so address the email to whoever booked.
+        if booking.contact_email:
+            send_email(booking.contact_email, "cancellation refuse!", html)
 
         
         

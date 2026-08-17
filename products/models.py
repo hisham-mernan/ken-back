@@ -230,7 +230,19 @@ class HutRating(models.Model):
 
 
 class Booking(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # Null for a guest booking made without an account. The guest_* fields below
+    # carry the same details registration collects, and the contact_* properties
+    # read from whichever source applies so callers do not have to branch.
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    guest_name = models.CharField(max_length=255, null=True, blank=True)
+    guest_email = models.EmailField(null=True, blank=True)
+    guest_phone = models.CharField(max_length=16, null=True, blank=True)
+    guest_id_num = models.CharField(max_length=15, null=True, blank=True)
+    # Lets a guest reopen their booking and QR from the link in their email,
+    # and authorises their payment calls. Unguessable and never reused.
+    access_token = models.UUIDField(default=uuid.uuid4, editable=False,
+                                    unique=True, null=True, blank=True,
+                                    db_index=True)
     hut = models.ForeignKey(Hut, on_delete=models.SET_NULL, null=True, blank=True,related_name="bookings")
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     persons_max_num = models.IntegerField()
@@ -247,8 +259,31 @@ class Booking(models.Model):
     is_reviewed=models.BooleanField(default=False)
     is_scaned=models.CharField(max_length=255, choices=(("not_started", "not_started"),('scaned','scaned'),('not_valid','not_valid')),default="not_started")
     promocode=models.ForeignKey(PromoCode,on_delete=models.SET_NULL,null=True,blank=True)
+    @property
+    def is_guest_booking(self):
+        return self.user_id is None
+
+    @property
+    def contact_name(self):
+        if self.user_id:
+            return self.user.full_name or self.user.email
+        return self.guest_name
+
+    @property
+    def contact_email(self):
+        return self.user.email if self.user_id else self.guest_email
+
+    @property
+    def contact_phone(self):
+        return self.user.phone if self.user_id else self.guest_phone
+
+    @property
+    def contact_id_num(self):
+        return self.user.id_num if self.user_id else self.guest_id_num
+
     def __str__(self):
-        return f"Booking #{self.pk} by {self.user}"
+        who = self.user if self.user_id else f"guest {self.guest_email or '-'}"
+        return f"Booking #{self.pk} by {who}"
     # def save(self, *args, **kwargs):
     #  from .utils import generate_qr_code_image
     #  import json

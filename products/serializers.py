@@ -1771,14 +1771,41 @@ class BookingSerializer(serializers.ModelSerializer):
     dates = serializers.SerializerMethodField(read_only=True) 
     promocode = serializers.CharField(write_only=True, required=False, allow_blank=True)
     promocode_obj = PromoCodeSerializer(read_only=True, source='promocode')
+    # Supplied instead of `user` when someone books without an account. Same
+    # details registration asks for. Write-only: the access token returned by
+    # the create view is what a guest uses to come back to the booking, so
+    # these are never echoed on reads.
+    guest_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    guest_email = serializers.EmailField(write_only=True, required=False, allow_blank=True)
+    guest_phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    guest_id_num = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    is_guest_booking = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Booking
         fields = [
             'id', 'user', 'hut', 'persons_max_num', 'kids_max_num','status','created_at','is_valid',"dates",
             'date', 'events', 'services', 'special_items','hut_details','total_price','paid','not_paid','promocode','promocode_obj',
+            'guest_name', 'guest_email', 'guest_phone', 'guest_id_num', 'is_guest_booking',
         ]
 
+    # Required from a guest, since there is no account to read them from.
+    GUEST_REQUIRED_FIELDS = ("guest_name", "guest_email", "guest_phone", "guest_id_num")
+
     def validate(self, data):
+        # A booking made without an account has to carry its own contact
+        # details, otherwise there is no way to reach whoever booked.
+        request = self.context.get("request")
+        is_guest = not (request and request.user and request.user.is_authenticated)
+        if is_guest and not self.instance:
+            missing = {
+                field: "This field is required when booking without an account."
+                for field in self.GUEST_REQUIRED_FIELDS
+                if not (data.get(field) or "").strip()
+            }
+            if missing:
+                raise serializers.ValidationError(missing)
+
         hut = data.get('hut')
         promocode_value = data.get('promocode')
 
@@ -1856,7 +1883,9 @@ class BookingSerializer(serializers.ModelSerializer):
     #     ) 
 
     def create(self, validated_data):
-        user = validated_data['user']
+        # None for a guest booking; the guest_* fields carry the contact
+        # details instead. The view decides which of the two applies.
+        user = validated_data.get('user')
         hut = validated_data['hut']
         persons = validated_data['persons_max_num']
         kids = validated_data['kids_max_num']
@@ -1866,14 +1895,18 @@ class BookingSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('special_items', [])
         promocode_value = validated_data.pop('promocode', None)
         promo = getattr(self, "_validated_promo", None)
-       
 
+        guest_fields = {
+            field: (validated_data.pop(field, "") or "").strip() or None
+            for field in self.GUEST_REQUIRED_FIELDS
+        }
 
         booking = Booking.objects.create(
             user=user,
             hut=hut,
             persons_max_num=persons,
-            kids_max_num=kids
+            kids_max_num=kids,
+            **({} if user else guest_fields),
         )
         if promo:
             booking.promocode = promo

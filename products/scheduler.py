@@ -108,6 +108,11 @@ def check_and_send_review_email(booking_id):
             return
 
         if booking.status == "paid" and not booking.is_reviewed:
+            if booking.user_id is None:
+                # Reviews are written from an account, which a guest booking
+                # does not have, so there is nothing for them to act on.
+                print(f"[Review Email] Booking {booking_id} is a guest booking, skipping.")
+                return
             send_review_email(booking.user, booking)
         else:
             print(f"[Review Email] Conditions not met for booking {booking_id}.")

@@ -243,6 +243,7 @@ import uuid
 # utils.py
 import qrcode
 from io import BytesIO
+from email.mime.image import MIMEImage
 from django.core.files import File
 
 def generate_qr_code_image(data):
@@ -506,4 +507,95 @@ def change_booking_status(booking, new_status):
     return True, {
         "success": "Booking confirmed successfully. Please pay within 30 minutes or the booking will be cancelled."
     }
+
+
+def send_booking_confirmation(booking):
+    """Email the booker their confirmation, booking details and QR code.
+
+    Sent for every paid booking, whether it belongs to an account or was made
+    as a guest. Guests also get a link back to their booking, since they have
+    no account to sign into.
+
+    Never raises. This runs off the back of a payment that has already
+    succeeded, so a mail problem must not be able to disturb that.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        from django.conf import settings
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        from django.utils.html import strip_tags
+
+        recipient = (booking.contact_email or "").strip()
+        if not recipient:
+            logger.warning(
+                "Booking %s has no contact email; confirmation not sent.", booking.pk
+            )
+            return False
+
+        main_date = booking.dates.filter(is_extra=False).first() or booking.dates.first()
+        base_url = settings.FRONTEND_BASE_URL.rstrip("/")
+        booking_link = (
+            f"{base_url}/booking/{booking.access_token}"
+            if booking.is_guest_booking and booking.access_token
+            else f"{base_url}/my-booking"
+        )
+
+        context = {
+            "booking": booking,
+            "contact_name": booking.contact_name or "there",
+            "main_date": main_date,
+            "dates": booking.dates.all(),
+            "hut": booking.hut,
+            "is_guest": booking.is_guest_booking,
+            "booking_link": booking_link,
+            # Referenced by the template as an inline attachment, so the code
+            # still shows when a client blocks remote images.
+            "qr_cid": "booking_qr",
+        }
+        html = render_to_string("booking_confirmation.html", context)
+
+        message = EmailMultiAlternatives(
+            subject=f"KEN - Booking #{booking.pk} confirmed",
+            body=strip_tags(html),
+            from_email=settings.EMAIL_HOST_USER,
+            to=[recipient],
+        )
+        message.attach_alternative(html, "text/html")
+
+        qr_bytes = _booking_qr_bytes(booking)
+        if qr_bytes:
+            image = MIMEImage(qr_bytes, _subtype="png")
+            image.add_header("Content-ID", "<booking_qr>")
+            image.add_header("Content-Disposition", "inline",
+                             filename=f"booking_{booking.pk}_qr.png")
+            message.attach(image)
+            message.mixed_subtype = "related"
+
+        message.send(fail_silently=False)
+        logger.info("Booking confirmation sent to %s for booking %s",
+                    recipient[:50], booking.pk)
+        return True
+    except Exception as exc:
+        logger.exception(
+            "Failed to send booking confirmation for booking %s: %s", booking.pk, exc
+        )
+        return False
+
+
+def _booking_qr_bytes(booking):
+    """PNG bytes for the booking QR, regenerated rather than re-downloaded.
+
+    The stored image lives in remote storage, so rebuilding it locally avoids
+    a network round trip failing the email.
+    """
+    try:
+        buffer = BytesIO()
+        qrcode.make(str(booking.pk)).save(buffer, format="PNG")
+        return buffer.getvalue()
+    except Exception:
+        return None
 

@@ -354,6 +354,12 @@ def mark_related_as_paid(sender, instance, **kwargs):
                 "Failed to send new order notification email: %s", e
             )
 
+        # Confirmation to whoever booked -- guest or account holder alike.
+        # send_booking_confirmation swallows its own errors so a mail problem
+        # cannot disturb a payment that has already gone through.
+        from .utils import send_booking_confirmation
+        send_booking_confirmation(instance)
+
 
 
 

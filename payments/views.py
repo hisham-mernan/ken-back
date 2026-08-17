@@ -2,9 +2,11 @@
 HyperPay payment gateway API views.
 Backend-only integration following the guide specifications.
 """
+import secrets
+
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.utils import timezone
 from decimal import Decimal
 import uuid
@@ -26,7 +28,10 @@ class CreateCheckoutView(generics.CreateAPIView):
     Creates a checkout session via server-to-server request to HyperPay.
     Returns checkoutId for frontend widget integration.
     """
-    permission_classes = [IsAuthenticated]
+    # Open, because a guest has no account to authenticate with. Ownership is
+    # then checked explicitly in create(): the account for a normal booking, or
+    # the booking's access token for a guest one.
+    permission_classes = [AllowAny]
     serializer_class = CreateCheckoutSerializer
     
     def create(self, request, *args, **kwargs):
@@ -53,12 +58,25 @@ class CreateCheckoutView(generics.CreateAPIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Verify booking belongs to the authenticated user
-        if booking.user != request.user:
-            return Response(
-                {'error': 'You do not have permission to pay for this booking.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        # Authorise the payment. A booking that belongs to an account is only
+        # payable by that account. A guest booking has no account, so its own
+        # access token is the credential -- compared in full, and only ever
+        # accepted for guest bookings, so a leaked token cannot unlock someone
+        # else's record.
+        if booking.user_id:
+            if not request.user.is_authenticated or booking.user_id != request.user.id:
+                return Response(
+                    {'error': 'You do not have permission to pay for this booking.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            supplied = str(request.data.get('access_token') or '').strip()
+            expected = str(booking.access_token or '')
+            if not supplied or not expected or not secrets.compare_digest(supplied, expected):
+                return Response(
+                    {'error': 'You do not have permission to pay for this booking.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
         # Recalculate booking totals on demand if they are zero
         # Prices are stored primarily on BookingDate.total_price and tickets,
@@ -133,10 +151,11 @@ class CreateCheckoutView(generics.CreateAPIView):
 
         amount_formatted = f"{amount:.2f}"
         
-        # Get customer information from booking user
+        # Customer details come from the account when there is one, and from
+        # the guest_* fields collected at checkout when there is not.
         user = booking.user
-        customer_email = user.email
-        customer_name = user.full_name or ''
+        customer_email = booking.contact_email or ''
+        customer_name = booking.contact_name or ''
         
         # Split full_name into given name and surname
         # Ensure both are provided (mandatory fields)
@@ -145,7 +164,7 @@ class CreateCheckoutView(generics.CreateAPIView):
         customer_surname = name_parts[1].strip() if len(name_parts) > 1 and name_parts[1].strip() else 'Name'
         
         # Prepare billing address from user address if available
-        billing_address = user.address or ''
+        billing_address = (user.address if user else '') or ''
         address_parts = billing_address.split(',') if billing_address else []
         
         # Prepare data for HyperPay service with all mandatory fields
@@ -247,9 +266,10 @@ class CreateCheckoutView(generics.CreateAPIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-        # Store transaction in database
+        # Store transaction in database. A guest checkout has no account, so
+        # the transaction is linked to the booking alone.
         payment_transaction = PaymentTransaction.objects.create(
-            user=request.user,
+            user=request.user if request.user.is_authenticated else None,
             checkout_id=checkout_id,
             merchant_transaction_id=merchant_transaction_id,
             amount=amount,
@@ -286,7 +306,11 @@ class VerifyPaymentView(generics.GenericAPIView):
     Verifies payment using resourcePath from HyperPay redirect.
     Updates payment status in database.
     """
-    permission_classes = [IsAuthenticated]
+    # HyperPay redirects the payer back here, and a guest carries no token on
+    # that hop. The resourcePath issued by HyperPay is the credential: it is
+    # unguessable and is verified server-to-server against them before
+    # anything is marked paid.
+    permission_classes = [AllowAny]
     
     def get(self, request, *args, **kwargs):
         resource_path = request.query_params.get('resourcePath')
@@ -409,7 +433,7 @@ class VerifyPaymentView(generics.GenericAPIView):
             # Try to find booking_id from user's recent pending bookings with matching amount
             # This is a fallback in case the transaction wasn't found
             booking_id = None
-            if request.user and amount_decimal > 0:
+            if request.user.is_authenticated and amount_decimal > 0:
                 from products.models import Booking
                 try:
                     # Find a booking with matching unpaid amount
@@ -426,7 +450,7 @@ class VerifyPaymentView(generics.GenericAPIView):
                     logger.warning(f"Failed to find booking by amount: {str(e)}")
             
             payment_transaction = PaymentTransaction.objects.create(
-                user=request.user,
+                user=request.user if request.user.is_authenticated else None,
                 checkout_id=checkout_id,
                 merchant_transaction_id=merchant_transaction_id or f"TXN_{uuid.uuid4().hex[:16].upper()}",
                 amount=amount_decimal,

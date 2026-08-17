@@ -107,8 +107,10 @@ def send_qr_to_darevue(booking):
         "Type": "EditEmployee",
         "OperationType": "1",
         "Data": {
-            "EmployeeCode": str(booking.user.id),
-            "EmployeeName": booking.user.get_full_name(),
+            # A guest booking has no account behind it, so identify it by the
+            # booking itself rather than a user id that does not exist.
+            "EmployeeCode": str(booking.user_id or f"guest-{booking.id}"),
+            "EmployeeName": booking.contact_name or "",
             "QRCode": str(booking.id),
             "EmpID": str(booking.qr_code)
         }

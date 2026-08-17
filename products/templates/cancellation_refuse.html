@@ -5,7 +5,7 @@
     <title>Cancellation Request Refused</title>
 </head>
 <body>
-    <h2>Hello {{ user.full_name }},</h2>
+    <h2>Hello {{ user.full_name|default:contact_name|default:"there" }},</h2>
 
     <p>We received your request to cancel Booking #{{ booking.id }}.</p>
 
