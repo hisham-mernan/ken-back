@@ -11,8 +11,14 @@ It deliberately reports NO secret values: only whether each variable is set,
 and its length. Remove this module, its URL entry, and its import once the
 upload path is confirmed working.
 
-    GET /api/health/storage/            configuration only
-    GET /api/health/storage/?write=1    also performs a round trip
+    GET  /api/health/storage/            configuration only
+    GET  /api/health/storage/?write=1    also performs a round trip
+    POST /api/health/storage/            multipart echo: reports what actually
+                                         arrived in request.FILES and stores it
+
+The POST form exists because storage was proven working while dashboard
+uploads still did nothing -- so the question became whether the file reaches
+Django at all through Vercel's WSGI bridge.
 """
 
 import io
@@ -24,6 +30,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 PROBE_KEY = "uploads/_diagnostic/storage_check.png"
 
@@ -40,7 +47,84 @@ def _present(name):
     return {"set": bool(value), "length": len(value) if value else 0}
 
 
+def _multipart_echo(request):
+    """Report exactly what arrived, then store it the way a real upload would."""
+    result = {
+        "method": request.method,
+        "content_type": request.META.get("CONTENT_TYPE"),
+        "content_length": request.META.get("CONTENT_LENGTH"),
+        "post_keys": list(request.POST.keys()),
+        "files_keys": list(request.FILES.keys()),
+        "files": [
+            {
+                "field": field,
+                "name": f.name,
+                "size": f.size,
+                "content_type": f.content_type,
+            }
+            for field in request.FILES
+            for f in request.FILES.getlist(field)
+        ],
+    }
+
+    if not request.FILES:
+        result["result"] = "NO FILES RECEIVED"
+        result["note"] = (
+            "Django parsed the request but request.FILES is empty -- the file "
+            "did not survive the trip, or was never attached."
+        )
+        return result
+
+    field = next(iter(request.FILES))
+    upload = request.FILES[field]
+    saved_name = None
+    try:
+        # Same path a model ImageField takes, so the pre_save optimizer runs
+        # against the same bytes.
+        saved_name = default_storage.save(
+            f"uploads/_diagnostic/{upload.name}", upload
+        )
+        result["saved_as"] = saved_name
+        result["url"] = default_storage.url(saved_name)
+        try:
+            req = urllib.request.Request(
+                result["url"], headers={"User-Agent": "storage-check/1.0"}
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                body = resp.read()
+            result["public_fetch"] = {
+                "status": resp.status,
+                "bytes": len(body),
+                "content_type": resp.headers.get("Content-Type"),
+            }
+        except Exception as exc:
+            result["public_fetch"] = {"error": f"{type(exc).__name__}: {exc}"}
+        result["result"] = "UPLOAD OK"
+    except Exception as exc:
+        result["result"] = "UPLOAD FAILED"
+        result["error"] = f"{type(exc).__name__}: {exc}"
+        result["traceback"] = traceback.format_exc().splitlines()[-6:]
+    finally:
+        # Keep it only when explicitly asked, so the bucket stays clean.
+        if saved_name and request.GET.get("keep") != "1":
+            try:
+                default_storage.delete(saved_name)
+                result["cleaned_up"] = True
+            except Exception as exc:
+                result["cleaned_up"] = f"failed: {exc}"
+        elif saved_name:
+            result["cleaned_up"] = False
+
+    return result
+
+
+@csrf_exempt
 def storage_check(request):
+    if request.method == "POST":
+        return JsonResponse(
+            _multipart_echo(request), json_dumps_params={"indent": 2}
+        )
+
     info = {
         "use_supabase_storage": getattr(settings, "USE_SUPABASE_STORAGE", False),
         "storage_backend": settings.STORAGES["default"]["BACKEND"],
