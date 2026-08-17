@@ -118,9 +118,96 @@ def _multipart_echo(request):
     return result
 
 
+def _hut_update_probe(request, hut_id):
+    """Run an uploaded file through the exact serializer the dashboard uses.
+
+    The generic write test proved storage works, so this narrows it to the real
+    update path: HutAdminDetailsDashboardSerializer -> Hut.main_image -> storage.
+    The original value is restored and the new object deleted before returning,
+    so the record is left exactly as it was found.
+    """
+    from products.models import Hut
+    from products.serializers import HutAdminDetailsDashboardSerializer
+
+    steps = {"hut_id": hut_id}
+    if not request.FILES:
+        steps["result"] = "NO FILE POSTED"
+        return steps
+
+    try:
+        hut = Hut.objects.get(pk=hut_id)
+    except Hut.DoesNotExist:
+        steps["result"] = f"hut {hut_id} not found"
+        return steps
+
+    original_name = hut.main_image.name if hut.main_image else None
+    steps["original_main_image"] = original_name
+
+    upload = request.FILES[next(iter(request.FILES))]
+    steps["uploaded"] = {"name": upload.name, "size": upload.size}
+
+    new_name = None
+    try:
+        serializer = HutAdminDetailsDashboardSerializer(
+            hut, data={"main_image": upload}, partial=True
+        )
+        steps["is_valid"] = serializer.is_valid()
+        if not steps["is_valid"]:
+            steps["errors"] = serializer.errors
+            steps["result"] = "SERIALIZER REJECTED THE FILE"
+            return steps
+
+        serializer.save()
+        hut.refresh_from_db()
+        new_name = hut.main_image.name if hut.main_image else None
+        steps["new_main_image"] = new_name
+        steps["changed"] = new_name != original_name
+
+        if new_name:
+            url = default_storage.url(new_name)
+            steps["new_url"] = url
+            try:
+                req = urllib.request.Request(
+                    url, headers={"User-Agent": "storage-check/1.0"}
+                )
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    body = resp.read()
+                steps["public_fetch"] = {
+                    "status": resp.status,
+                    "bytes": len(body),
+                    "content_type": resp.headers.get("Content-Type"),
+                }
+            except Exception as exc:
+                steps["public_fetch"] = {"error": f"{type(exc).__name__}: {exc}"}
+
+        steps["result"] = "UPDATE OK" if steps.get("changed") else "NO CHANGE"
+    except Exception as exc:
+        steps["result"] = "UPDATE FAILED"
+        steps["error"] = f"{type(exc).__name__}: {exc}"
+        steps["traceback"] = traceback.format_exc().splitlines()[-6:]
+    finally:
+        # Put the record back exactly as it was, and remove the new object.
+        try:
+            if new_name and new_name != original_name:
+                Hut.objects.filter(pk=hut_id).update(main_image=original_name)
+                steps["restored_to"] = original_name
+                if request.GET.get("keep") != "1":
+                    default_storage.delete(new_name)
+                    steps["deleted_new_object"] = new_name
+        except Exception as exc:
+            steps["restore_error"] = f"{type(exc).__name__}: {exc}"
+
+    return steps
+
+
 @csrf_exempt
 def storage_check(request):
     if request.method == "POST":
+        hut_id = request.GET.get("hut")
+        if hut_id:
+            return JsonResponse(
+                _hut_update_probe(request, hut_id), json_dumps_params={"indent": 2}
+            )
         return JsonResponse(
             _multipart_echo(request), json_dumps_params={"indent": 2}
         )
