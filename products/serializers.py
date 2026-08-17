@@ -1793,16 +1793,25 @@ class BookingSerializer(serializers.ModelSerializer):
     GUEST_REQUIRED_FIELDS = ("guest_name", "guest_email", "guest_phone", "guest_id_num")
 
     def validate(self, data):
-        # A booking made without an account has to carry its own contact
-        # details, otherwise there is no way to reach whoever booked.
-        request = self.context.get("request")
-        is_guest = not (request and request.user and request.user.is_authenticated)
-        if is_guest and not self.instance:
-            missing = {
-                field: "This field is required when booking without an account."
-                for field in self.GUEST_REQUIRED_FIELDS
-                if not (data.get(field) or "").strip()
-            }
+        # Guest details are collected on the checkout page, not when the draft
+        # booking is first created on the hut page, so they are only required
+        # at the point a guest confirms. Either supplied now or already stored
+        # from an earlier step counts.
+        booking = self.instance
+        if (
+            booking is not None
+            and booking.user_id is None
+            and (data.get("status") or "") == "confirmed"
+        ):
+            missing = {}
+            for field in self.GUEST_REQUIRED_FIELDS:
+                supplied = (data.get(field) or "").strip()
+                stored = (getattr(booking, field, "") or "").strip()
+                if not supplied and not stored:
+                    missing[field] = (
+                        "This field is required to confirm a booking "
+                        "without an account."
+                    )
             if missing:
                 raise serializers.ValidationError(missing)
 
@@ -2037,6 +2046,19 @@ class BookingSerializer(serializers.ModelSerializer):
      instance.persons_max_num = persons
      instance.kids_max_num = kids
     #  instance.status = validated_data.get('status', instance.status)
+
+    # Guest contact details arrive at checkout rather than at creation, and
+    # this custom update() would otherwise drop them. Only ever set on a
+    # booking that has no account behind it.
+     if instance.user_id is None:
+        for field in self.GUEST_REQUIRED_FIELDS:
+            value = (validated_data.pop(field, None) or "").strip()
+            if value:
+                setattr(instance, field, value)
+     else:
+        for field in self.GUEST_REQUIRED_FIELDS:
+            validated_data.pop(field, None)
+
      instance.save()
 
     # Update booking date

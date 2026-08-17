@@ -1,3 +1,5 @@
+import secrets
+
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework import serializers
@@ -586,13 +588,40 @@ class BookingByTokenView(generics.RetrieveAPIView):
 class BookingUpdateView(generics.RetrieveUpdateAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+    # A guest reaches their own draft booking with its access token instead of
+    # a session; ownership is enforced in get_queryset and _authorised below.
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+        if self.request.user.is_authenticated:
+            return self.queryset.filter(user=self.request.user)
+        # Anonymous callers can only ever see bookings with no account behind
+        # them, and then only the one whose token they present.
+        return self.queryset.filter(user__isnull=True)
+
+    def _authorised(self, booking, request):
+        """A guest booking additionally requires its own access token."""
+        if booking.user_id is not None:
+            return True
+        supplied = str(
+            request.data.get("access_token")
+            or request.query_params.get("access_token")
+            or ""
+        ).strip()
+        expected = str(booking.access_token or "")
+        return bool(supplied and expected and secrets.compare_digest(supplied, expected))
+
+    def retrieve(self, request, *args, **kwargs):
+        booking = self.get_object()
+        if not self._authorised(booking, request):
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+        return super().retrieve(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         # Get booking before update to check current status
         booking = self.get_object()
+        if not self._authorised(booking, request):
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
         current_status = booking.status
         new_status = request.data.get("status")
         
