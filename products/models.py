@@ -229,6 +229,12 @@ class HutRating(models.Model):
     
 
 
+# Statuses where the booking holds its dates. Anything reasoning about
+# availability must use this rather than listing statuses inline -- missing one
+# here is what makes a hut double-bookable.
+ACTIVE_BOOKING_STATUSES = ["confirmed", "partially_paid", "paid"]
+
+
 class Booking(models.Model):
     # Null for a guest booking made without an account. The guest_* fields below
     # carry the same details registration collects, and the contact_* properties
@@ -250,7 +256,13 @@ class Booking(models.Model):
     not_paid=models.DecimalField(max_digits=10, decimal_places=2, default=0,null=True,blank=True)
     kids_max_num = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    status=models.CharField(max_length=255, choices=(("pending", "pending"),('confirmed','confirmed'),('cancelled','cancelled'),('paid','paid'),('refuned','refuned')),default="pending", db_index=True)
+    # partially_paid means a deposit has been taken: the dates are held and the
+    # 30-minute unpaid-cancel sweep must not touch it, but no QR is issued
+    # until the balance clears.
+    status=models.CharField(max_length=255, choices=(("pending", "pending"),('confirmed','confirmed'),('partially_paid','partially_paid'),('cancelled','cancelled'),('paid','paid'),('refuned','refuned')),default="pending", db_index=True)
+    # Bookkeeping for the balance reminder emails.
+    last_reminder_at = models.DateTimeField(null=True, blank=True)
+    reminder_count = models.PositiveIntegerField(default=0)
     qr_code = models.CharField(max_length=255, blank=True, null=True, default=uuid.uuid4)
     qr_code_image = models.ImageField(upload_to=qr_image, null=True, blank=True)
     is_qr_genereated=models.BooleanField(default=False)

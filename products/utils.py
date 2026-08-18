@@ -42,7 +42,7 @@ def is_date_range_valid_for_hut(hut, date_from, date_to):
         # Check if there's a conflicting booking on this date
         conflicting_booking = BookingDate.objects.filter(
             booking__hut=hut,
-            booking__status__in=['confirmed', 'paid'],
+            booking__status__in=ACTIVE_BOOKING_STATUSES,
             date_from__lte=current_date,
             date_to__gte=current_date
         ).exists()
@@ -312,7 +312,7 @@ def is_hut_available(hut_id, date_from, date_to,booking_obj):
     # Get all relevant bookings with status paid or confirmed
     bookings = Booking.objects.filter(
         hut=hut,
-        status__in=["paid", "confirmed"]
+        status__in=ACTIVE_BOOKING_STATUSES
     )
     print(booking_obj,"kkoo")
     if booking_obj:
@@ -365,7 +365,7 @@ def get_hut_available_dates(hut_or_id):
     ).order_by("date_from")
 
     # Step 2: Get all booked date ranges (paid or confirmed)
-    bookings = Booking.objects.filter(hut=hut, status__in=["paid", "confirmed"]).prefetch_related('dates')
+    bookings = Booking.objects.filter(hut=hut, status__in=ACTIVE_BOOKING_STATUSES).prefetch_related('dates')
     booked_ranges = []
     for booking in bookings:
         for b_date in booking.dates.all():

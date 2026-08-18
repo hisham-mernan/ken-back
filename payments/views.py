@@ -16,6 +16,9 @@ from .services import HyperPayService
 
 logger = logging.getLogger(__name__)
 
+# Share of the total taken when a guest chooses to pay part now.
+DEPOSIT_FRACTION = Decimal("0.5")
+
 
 class CreateCheckoutView(generics.CreateAPIView):
     """
@@ -145,6 +148,18 @@ class CreateCheckoutView(generics.CreateAPIView):
             amount = Decimal(str(booking.not_paid))
         else:
             amount = Decimal(str(booking.total_price or "0.00"))
+
+        # "Pay 50% now" is only offered on the first payment. Once a deposit
+        # has been taken, the remaining balance is always charged in full --
+        # otherwise a booking could be part-paid indefinitely in ever smaller
+        # instalments.
+        if (
+            str(request.data.get("payment_option") or "").lower() == "deposit"
+            and not Decimal(str(booking.paid or "0.00")) > 0
+        ):
+            deposit = (amount * DEPOSIT_FRACTION).quantize(Decimal("0.01"))
+            if deposit > 0:
+                amount = deposit
 
         amount_formatted = f"{amount:.2f}"
         
@@ -436,7 +451,7 @@ class VerifyPaymentView(generics.GenericAPIView):
                     # Find a booking with matching unpaid amount
                     matching_booking = Booking.objects.filter(
                         user=request.user,
-                        status__in=['pending', 'confirmed'],
+                        status__in=['pending', 'confirmed', 'partially_paid'],
                         not_paid=amount_decimal
                     ).order_by('-created_at').first()
                     
@@ -536,9 +551,11 @@ class VerifyPaymentView(generics.GenericAPIView):
                     new_not_paid = max(total_price - new_paid, Decimal('0.00'))
                     booking.paid = new_paid
                     booking.not_paid = new_not_paid
-                    # Keep status as confirmed or pending for partial payments
-                    if booking.status == 'pending':
-                        booking.status = 'confirmed'
+                    # A deposit holds the dates but must not look like an
+                    # unpaid confirmed booking: the 30-minute sweep cancels
+                    # those, which would wipe out a booking that just paid.
+                    if booking.status in ('pending', 'confirmed'):
+                        booking.status = 'partially_paid'
                     logger.info(f"Booking {booking.id} received partial payment: {payment_amount} of {not_paid} remaining")
                 
                 booking.save()
