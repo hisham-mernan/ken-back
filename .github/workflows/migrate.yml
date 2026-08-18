@@ -1,0 +1,76 @@
+name: Migrate production database
+
+# Vercel builds core/wsgi.py directly and never runs build.sh, so the migrate
+# step in that script has never executed on a deploy. A model change therefore
+# ships code that expects columns the database does not have, and every query
+# touching that table 500s. This closes that gap.
+#
+# Requires one repository secret: DATABASE_URL (the production connection
+# string). Settings/Secrets and variables/Actions/New repository secret.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two migration runs overlap.
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Require the production connection string
+        # Without it settings.py silently falls back to SQLite, so every step
+        # below would migrate a throwaway file in the runner and report
+        # success. A false green here is worse than no workflow at all.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is not set - refusing to run."
+            echo "Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "DATABASE_URL is set (${#DATABASE_URL} characters)."
+
+      - name: Fail if a model change has no migration
+        # Catches the other half of the problem: a model edited without
+        # makemigrations, which would break as soon as anything queried it.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Show what will be applied
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python manage.py migrate --plan
+
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python manage.py migrate --noinput
+
+      - name: Confirm nothing is left pending
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if python manage.py migrate --plan | grep -q "No planned migration operations"; then
+            echo "Database is up to date."
+          else
+            echo "Migrations still pending after apply:"
+            python manage.py migrate --plan
+            exit 1
+          fi
