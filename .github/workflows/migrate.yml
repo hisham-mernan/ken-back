@@ -7,6 +7,15 @@ name: Migrate production database
 #
 # Requires one repository secret: DATABASE_URL (the production connection
 # string). Settings/Secrets and variables/Actions/New repository secret.
+#
+# It must be Supabase's SESSION POOLER string, not the direct one:
+#   postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres
+#
+# The direct host (db.<ref>.supabase.co) publishes only an AAAA record, and
+# GitHub runners have no IPv6, so it is simply unreachable from here -- the
+# job fails at "Show what will be applied" with a connection error. Use port
+# 5432 (session), never 6543 (transaction): migrations run DDL inside
+# transactions and the transaction pooler rejects that.
 
 on:
   push:
