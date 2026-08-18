@@ -2558,14 +2558,22 @@ class PaidBookingIfLastConfirmedView(generics.RetrieveAPIView):
 
 class PaidBookingIfLastConfirmedDetailsView(generics.RetrieveAPIView):
     serializer_class = BookingForPaymnetSerializer
-   
+    # This is the page the payment gateway redirects back to. A guest returns
+    # from that hop without a session, so the booking's own token authorises
+    # the read instead -- and only ever for bookings with no account.
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, pk):
-        user = request.user
+        if request.user.is_authenticated:
+            booking = Booking.objects.filter(id=pk, user=request.user).first()
+        else:
+            booking = Booking.objects.filter(id=pk, user__isnull=True).first()
+            if booking and not booking_token_matches(
+                request.query_params.get("access_token"), booking.access_token
+            ):
+                booking = None
 
-        try:
-            booking = Booking.objects.get(id=pk, user=user)
-        except Booking.DoesNotExist:
+        if not booking:
             return Response({"detail": "Booking is not found."}, status=status.HTTP_404_NOT_FOUND)
 
        
