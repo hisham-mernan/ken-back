@@ -2,8 +2,6 @@
 HyperPay payment gateway API views.
 Backend-only integration following the guide specifications.
 """
-import secrets
-
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -70,9 +68,8 @@ class CreateCheckoutView(generics.CreateAPIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
         else:
-            supplied = str(request.data.get('access_token') or '').strip()
-            expected = str(booking.access_token or '')
-            if not supplied or not expected or not secrets.compare_digest(supplied, expected):
+            from products.utils import booking_token_matches
+            if not booking_token_matches(request.data.get('access_token'), booking.access_token):
                 return Response(
                     {'error': 'You do not have permission to pay for this booking.'},
                     status=status.HTTP_403_FORBIDDEN

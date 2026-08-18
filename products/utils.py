@@ -599,3 +599,27 @@ def _booking_qr_bytes(booking):
     except Exception:
         return None
 
+
+
+def booking_token_matches(supplied, expected):
+    """Compare a caller-supplied booking access token against the stored one.
+
+    Both sides are normalised to canonical UUID form first: '1234abcd...' and
+    '1234-abcd-...' are the same token, and a client that sends the undashed
+    form should not be turned away. Comparison stays constant-time so the
+    endpoint cannot be used to guess a token a character at a time.
+    """
+    import secrets
+    import uuid
+
+    if not supplied or not expected:
+        return False
+    try:
+        left = str(uuid.UUID(str(supplied).strip()))
+    except (ValueError, AttributeError, TypeError):
+        return False
+    try:
+        right = str(uuid.UUID(str(expected).strip()))
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return secrets.compare_digest(left, right)

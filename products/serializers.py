@@ -2415,3 +2415,43 @@ class BookingPaymentSerializer(serializers.ModelSerializer):
         model = Booking
         fields = ["id", "status", "is_paid", "paid", "not_paid"]
         read_only_fields = ["id", "status", "is_paid", "paid", "not_paid"]
+
+class GuestBookingHutSerializer(serializers.ModelSerializer):
+    """Just enough about the hut to recognise the booking."""
+
+    class Meta:
+        model = Hut
+        fields = ['id', 'title', 'title_ar', 'main_image']
+
+
+class GuestBookingSerializer(serializers.ModelSerializer):
+    """What a guest sees when they open their booking from the email link.
+
+    Deliberately narrow. The general BookingSerializer carries promo codes and
+    the full hut record, and the authenticated detail view strips the promo
+    fields before returning them -- rather than repeat that stripping here,
+    this only ever exposes what the booking page actually renders.
+    """
+
+    hut = GuestBookingHutSerializer(read_only=True)
+    dates = BookingDateSerializer(many=True, read_only=True)
+    contact_name = serializers.CharField(read_only=True)
+    contact_email = serializers.CharField(read_only=True)
+    qr_code_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Booking
+        fields = [
+            'id', 'status', 'total_price', 'paid', 'not_paid',
+            'persons_max_num', 'kids_max_num', 'created_at',
+            'hut', 'dates', 'contact_name', 'contact_email', 'qr_code_image',
+        ]
+
+    def get_qr_code_image(self, obj):
+        # Only exists once the booking is paid; shown so a guest can present it.
+        if not obj.qr_code_image:
+            return None
+        try:
+            return obj.qr_code_image.url
+        except Exception:
+            return None

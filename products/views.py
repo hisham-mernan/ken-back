@@ -1,6 +1,5 @@
-import secrets
-
 from rest_framework import generics, status
+from products.utils import booking_token_matches
 from rest_framework.response import Response
 from rest_framework import serializers
 from .models import *
@@ -576,7 +575,7 @@ class BookingByTokenView(generics.RetrieveAPIView):
     a booking that belongs to an account must be read through the authenticated
     endpoints, so a leaked token can never expose a registered user's record.
     """
-    serializer_class = BookingSerializer
+    serializer_class = GuestBookingSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "access_token"
     lookup_url_kwarg = "access_token"
@@ -603,13 +602,8 @@ class BookingUpdateView(generics.RetrieveUpdateAPIView):
         """A guest booking additionally requires its own access token."""
         if booking.user_id is not None:
             return True
-        supplied = str(
-            request.data.get("access_token")
-            or request.query_params.get("access_token")
-            or ""
-        ).strip()
-        expected = str(booking.access_token or "")
-        return bool(supplied and expected and secrets.compare_digest(supplied, expected))
+        supplied = request.data.get("access_token") or request.query_params.get("access_token")
+        return booking_token_matches(supplied, booking.access_token)
 
     def retrieve(self, request, *args, **kwargs):
         booking = self.get_object()
@@ -802,12 +796,23 @@ from django.utils.timezone import now
 from datetime import timedelta
 
 class AvailableServiceView(APIView):
+    # The checkout page calls this to list add-ons for the booked dates, and a
+    # guest has no session there. Scoped rather than opened outright: a guest
+    # booking still has to present its own token.
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         booking_id = request.data.get("booking_id")
         if not booking_id:
             return Response({"error": "booking_id is required."}, status=400)
 
         booking = get_object_or_404(Booking.objects.prefetch_related("dates"), pk=booking_id)
+
+        if booking.user_id is None:
+            if not booking_token_matches(request.data.get("access_token"), booking.access_token):
+                return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+        elif not request.user.is_authenticated:
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
         
         if not booking.dates.exists():
             return Response({"error": "This booking has no date ranges."}, status=400)
@@ -918,11 +923,24 @@ class AvailableServiceView(APIView):
 
 
 class BookingDetailView(APIView):
+    # The checkout page reads the booking through here, and a guest has no
+    # session at that point. Ownership is enforced below instead: the account
+    # for a normal booking, or the booking's own access token for a guest one.
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request, pk):
-        try:
-            booking = Booking.objects.select_related('promocode').get(pk=pk, user=request.user)
-        except Booking.DoesNotExist:
-            return Response({"error": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
+        if request.user.is_authenticated:
+            try:
+                booking = Booking.objects.select_related('promocode').get(pk=pk, user=request.user)
+            except Booking.DoesNotExist:
+                return Response({"error": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            booking = Booking.objects.select_related('promocode').filter(
+                pk=pk, user__isnull=True
+            ).first()
+            supplied = request.query_params.get("access_token")
+            if not booking or not booking_token_matches(supplied, booking.access_token):
+                return Response({"error": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = BookingSerializer(booking)
         data = serializer.data
