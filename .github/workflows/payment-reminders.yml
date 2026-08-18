@@ -60,10 +60,16 @@ jobs:
           EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
           MEDIA_URL: ${{ secrets.MEDIA_URL }}
         run: |
-          if [ -n "${{ inputs.sample_to }}" ]; then
-            python manage.py send_payment_reminders --sample-to "${{ inputs.sample_to }}"
-          elif [ "${{ inputs.dry_run }}" = "true" ]; then
+          # Dry run is checked first on purpose: ticking it must never send,
+          # even if an address is still sitting in the sample box from a
+          # previous run.
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            if [ -n "${{ inputs.sample_to }}" ]; then
+              echo "Dry run is ticked, so the sample address is ignored and nothing will be sent."
+            fi
             python manage.py send_payment_reminders --dry-run
+          elif [ -n "${{ inputs.sample_to }}" ]; then
+            python manage.py send_payment_reminders --sample-to "${{ inputs.sample_to }}"
           else
             python manage.py send_payment_reminders
           fi
