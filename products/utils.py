@@ -623,3 +623,65 @@ def booking_token_matches(supplied, expected):
     except (ValueError, AttributeError, TypeError):
         return False
     return secrets.compare_digest(left, right)
+
+
+def booking_payment_link(booking):
+    """Where a booker goes to settle their balance.
+
+    A guest has no account, so their link carries the booking's access token;
+    an account holder is sent to their bookings list.
+    """
+    from django.conf import settings
+
+    base = settings.FRONTEND_BASE_URL.rstrip("/")
+    if booking.user_id is None and booking.access_token:
+        return f"{base}/booking/{booking.access_token}"
+    return f"{base}/my-booking"
+
+
+def send_balance_reminder(booking):
+    """Email a reminder that a balance is still outstanding.
+
+    Returns True when sent. Never raises: one bad address must not stop the
+    rest of the run.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+    try:
+        from django.conf import settings
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        from django.utils.html import strip_tags
+
+        recipient = (booking.contact_email or "").strip()
+        if not recipient:
+            logger.warning("Booking %s has no contact email; reminder skipped.", booking.pk)
+            return False
+
+        main_date = booking.dates.filter(is_extra=False).first() or booking.dates.first()
+        html = render_to_string(
+            "payment_reminder.html",
+            {
+                "booking": booking,
+                "contact_name": booking.contact_name or "there",
+                "main_date": main_date,
+                "hut": booking.hut,
+                "payment_link": booking_payment_link(booking),
+                "amount_due": booking.not_paid,
+                "amount_paid": booking.paid,
+            },
+        )
+        message = EmailMultiAlternatives(
+            subject=f"KEN - Balance due for booking #{booking.pk}",
+            body=strip_tags(html),
+            from_email=settings.EMAIL_HOST_USER,
+            to=[recipient],
+        )
+        message.attach_alternative(html, "text/html")
+        message.send(fail_silently=False)
+        logger.info("Balance reminder sent to %s for booking %s", recipient[:50], booking.pk)
+        return True
+    except Exception as exc:
+        logger.exception("Failed to send balance reminder for booking %s: %s", booking.pk, exc)
+        return False

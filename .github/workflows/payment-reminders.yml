@@ -1,0 +1,63 @@
+name: Send payment reminders
+
+# Runs the daily balance chase. This lives here rather than in APScheduler
+# because Vercel destroys the process between requests, so an in-process
+# scheduler never fires there -- the same reason the existing review-email
+# scheduler does not work in production.
+#
+# Uses the same DATABASE_URL secret as the migrate workflow, which must be
+# Supabase's SESSION POOLER string: GitHub runners have no IPv6 and the direct
+# host publishes only an AAAA record.
+
+on:
+  schedule:
+    # 09:00 UTC = 12:00 in Riyadh, a reasonable hour to be emailed.
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List who would be emailed without sending"
+        type: boolean
+        default: false
+
+concurrency:
+  group: payment-reminders
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Require the production connection string
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is not set - refusing to run."
+            exit 1
+          fi
+          echo "DATABASE_URL is set (${#DATABASE_URL} characters)."
+
+      - name: Send reminders
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FRONTEND_BASE_URL: ${{ secrets.FRONTEND_BASE_URL }}
+          EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+          EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+          MEDIA_URL: ${{ secrets.MEDIA_URL }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python manage.py send_payment_reminders --dry-run
+          else
+            python manage.py send_payment_reminders
+          fi
