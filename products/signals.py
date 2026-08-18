@@ -1461,3 +1461,35 @@ from .models import (
 
 #     # Schedule recalculation AFTER transaction commits (only once)
 #     transaction.on_commit(lambda: recalculate_booking_totals(booking))
+
+
+from django.db.models.signals import post_save
+
+
+@receiver(pre_save, sender=Booking)
+def flag_deposit_transition(sender, instance, **kwargs):
+    """Notice a booking becoming partially_paid, ready for post_save to act.
+
+    Split across pre_save and post_save on purpose: pre_save is the only place
+    the previous status is still available, but the email must not go out until
+    the row has actually committed -- otherwise a failed save would still tell
+    the guest their deposit landed.
+    """
+    instance._deposit_just_taken = False
+    if not instance.pk:
+        return
+    old = Booking.objects.filter(pk=instance.pk).values_list("status", flat=True).first()
+    if old != "partially_paid" and instance.status == "partially_paid":
+        instance._deposit_just_taken = True
+        # The deposit email counts as the first contact, so the daily chase
+        # starts a day later rather than possibly hours later.
+        instance.last_reminder_at = timezone.now()
+
+
+@receiver(post_save, sender=Booking)
+def send_deposit_email(sender, instance, created, **kwargs):
+    if not getattr(instance, "_deposit_just_taken", False):
+        return
+    instance._deposit_just_taken = False
+    from .utils import send_deposit_confirmation
+    send_deposit_confirmation(instance)

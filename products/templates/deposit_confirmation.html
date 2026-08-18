@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head><meta charset="utf-8" /><title>Deposit received</title></head>
+  <body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif; color:#333;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4; padding:24px 0;">
+      <tr><td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:8px; overflow:hidden;">
+
+          <tr><td style="background-color:#0A1F1A; padding:24px; text-align:center;">
+            <h1 style="margin:0; color:#ffffff; font-size:22px;">Your dates are held</h1>
+          </td></tr>
+
+          <tr><td style="padding:24px;">
+            <p style="margin:0 0 16px;">Hello {{ contact_name }},</p>
+            <p style="margin:0 0 24px;">
+              We have received your deposit and your hut is reserved for the dates below.
+              Your booking is <strong>not yet fully paid</strong> &mdash; once the balance
+              clears we will send your entry QR code, which you will need on arrival.
+            </p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:24px;">
+              <tr>
+                <td style="padding:10px; border:1px solid #dee2e6; background-color:#f8f9fa;"><strong>Booking number</strong></td>
+                <td style="padding:10px; border:1px solid #dee2e6;">#{{ booking.id }}</td>
+              </tr>
+              {% if hut %}
+              <tr>
+                <td style="padding:10px; border:1px solid #dee2e6; background-color:#f8f9fa;"><strong>Hut</strong></td>
+                <td style="padding:10px; border:1px solid #dee2e6;">{{ hut.title }}</td>
+              </tr>
+              {% endif %}
+              {% if main_date %}
+              <tr>
+                <td style="padding:10px; border:1px solid #dee2e6; background-color:#f8f9fa;"><strong>Dates</strong></td>
+                <td style="padding:10px; border:1px solid #dee2e6;">{{ main_date.date_from }} &rarr; {{ main_date.date_to }}</td>
+              </tr>
+              {% endif %}
+              <tr>
+                <td style="padding:10px; border:1px solid #dee2e6; background-color:#f8f9fa;"><strong>Paid so far</strong></td>
+                <td style="padding:10px; border:1px solid #dee2e6;">{{ amount_paid }} SAR</td>
+              </tr>
+              <tr>
+                <td style="padding:10px; border:1px solid #dee2e6; background-color:#f8f9fa;"><strong>Still to pay</strong></td>
+                <td style="padding:10px; border:1px solid #dee2e6; font-size:18px;"><strong>{{ amount_due }} SAR</strong></td>
+              </tr>
+              <tr>
+                <td style="padding:10px; border:1px solid #dee2e6; background-color:#f8f9fa;"><strong>Total</strong></td>
+                <td style="padding:10px; border:1px solid #dee2e6;">{{ booking.total_price }} SAR</td>
+              </tr>
+            </table>
+
+            <p style="text-align:center; margin:0 0 24px;">
+              <a href="{{ payment_link }}" style="display:inline-block; background-color:#0A1F1A; color:#ffffff; text-decoration:none; padding:14px 28px; border-radius:6px; font-size:16px;">
+                Pay the remaining {{ amount_due }} SAR
+              </a>
+            </p>
+
+            <p style="margin:0 0 8px; font-size:13px; color:#666;">
+              You can pay the balance any time before your stay using the link above.
+              We will send a reminder each day until it is settled.
+            </p>
+            {% if booking.is_guest_booking %}
+            <p style="margin:0; font-size:13px; color:#666;">
+              You booked as a guest, so there is no account to sign in to. Keep this email
+              &mdash; that link is how you return to your booking.
+            </p>
+            {% endif %}
+          </td></tr>
+
+          <tr><td style="background-color:#f8f9fa; padding:16px 24px; text-align:center; font-size:12px; color:#666;">
+            KEN Countryside Huts &middot; Reply to this email if you need a hand.
+          </td></tr>
+
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>

@@ -691,3 +691,54 @@ def send_balance_reminder(booking, is_sample=False):
     except Exception as exc:
         logger.exception("Failed to send balance reminder for booking %s: %s", booking.pk, exc)
         return False
+
+
+def send_deposit_confirmation(booking):
+    """Confirm a deposit: the dates are held, but the balance is still owed.
+
+    Sent the moment a booking becomes partially_paid, so the guest is not left
+    wondering what their money bought until the first daily reminder arrives.
+    Deliberately does NOT carry the QR -- that is issued on full payment.
+
+    Never raises: the payment has already succeeded by this point.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+    try:
+        from django.conf import settings
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        from django.utils.html import strip_tags
+
+        recipient = (booking.contact_email or "").strip()
+        if not recipient:
+            logger.warning("Booking %s has no contact email; deposit note not sent.", booking.pk)
+            return False
+
+        main_date = booking.dates.filter(is_extra=False).first() or booking.dates.first()
+        html = render_to_string(
+            "deposit_confirmation.html",
+            {
+                "booking": booking,
+                "contact_name": booking.contact_name or "there",
+                "main_date": main_date,
+                "hut": booking.hut,
+                "payment_link": booking_payment_link(booking),
+                "amount_paid": booking.paid,
+                "amount_due": booking.not_paid,
+            },
+        )
+        message = EmailMultiAlternatives(
+            subject=f"KEN - Deposit received for booking #{booking.pk}",
+            body=strip_tags(html),
+            from_email=settings.EMAIL_HOST_USER,
+            to=[recipient],
+        )
+        message.attach_alternative(html, "text/html")
+        message.send(fail_silently=False)
+        logger.info("Deposit confirmation sent to %s for booking %s", recipient[:50], booking.pk)
+        return True
+    except Exception as exc:
+        logger.exception("Failed to send deposit confirmation for booking %s: %s", booking.pk, exc)
+        return False
