@@ -1,5 +1,8 @@
    
+import logging
+
 from rest_framework import generics, status
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -13,6 +16,8 @@ from .serializers import *
 from rest_framework.permissions import AllowAny
 from django.template.loader import render_to_string
 from django.contrib.auth.hashers import make_password
+
+logger = logging.getLogger(__name__)
 from rest_framework.pagination import PageNumberPagination
 from datetime import date 
 from django.shortcuts import get_object_or_404
@@ -112,9 +117,19 @@ class LoginApiView(generics.GenericAPIView):
                            "full_name":user.full_name,
                            "avatar":avatar_url
                        },status=status.HTTP_200_OK)
-        except Exception as e:
-            import traceback
-            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            # Validation and auth failures are the caller's problem, not a
+            # server fault. Letting DRF handle them keeps the 400 status and
+            # the {"field": ["message"]} shape the frontend matches on --
+            # flattening them into a 500 with a stringified dict meant every
+            # bad password showed up as "Something went wrong".
+            raise
+        except Exception:
+            logger.exception("Unexpected error during login")
+            return Response(
+                {"error": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
        
 
 # class ResendOTPView(APIView):

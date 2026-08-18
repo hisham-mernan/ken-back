@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 from rest_framework import generics, status
 from django.core.files.storage import default_storage
 from products.utils import booking_token_matches
@@ -2037,9 +2041,14 @@ class HutCreateView(APIView):
             queryset = Hut.objects.all().order_by('-id')
             serializer = HutSerializer(queryset, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            import traceback
-            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            # A stack trace in the response body tells an attacker the file
+            # layout, package versions and query shapes. Log it instead.
+            logger.exception("Failed to list huts")
+            return Response(
+                {"error": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def post(self, request, *args, **kwargs):
         data = {}
@@ -2737,6 +2746,9 @@ class PublicSeedKenDataView(APIView):
                     "users": User.objects.count(),
                 }
             })
-        except Exception as e:
-            error_details = traceback.format_exc()
-            return Response({"status": "error", "message": str(e), "traceback": error_details}, status=500)
+        except Exception:
+            logger.exception("Failed to build dashboard counts")
+            return Response(
+                {"status": "error", "message": "Something went wrong. Please try again."},
+                status=500,
+            )
