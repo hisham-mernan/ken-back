@@ -1121,6 +1121,12 @@ class UpComingBookingSerializer(serializers.ModelSerializer):
         read_only_fields = ['total_price', 'paid', 'not_paid', 'created_at', 'status', 'dates',]
 
     def get_qr_code_image(self, obj):
+        # The QR is the entry pass, so it may only exist once the booking is
+        # paid in full. This method used to mint one for any booking that
+        # lacked it, simply because the payment page was viewed -- which handed
+        # a working pass to anyone who had paid a deposit, or nothing at all.
+        if obj.status != "paid":
+            return None
         if not obj.qr_code_image:
             from .utils import generate_qr_code_image
             try:
@@ -1415,6 +1421,11 @@ class BookingForPaymnetSerializer(serializers.ModelSerializer):
         read_only_fields = ['total_price', 'paid', 'not_paid', 'created_at', 'status', 'dates']
 
     def get_qr_code_image(self, obj):
+        # The QR is the entry pass, so it may only exist once the booking is
+        # paid in full. Minting one just because a page was viewed handed a
+        # working pass to anyone who had paid a deposit, or nothing at all.
+        if obj.status != "paid":
+            return None
         if not obj.qr_code_image:
             from .utils import generate_qr_code_image
             try:
@@ -2448,8 +2459,9 @@ class GuestBookingSerializer(serializers.ModelSerializer):
         ]
 
     def get_qr_code_image(self, obj):
-        # Only exists once the booking is paid; shown so a guest can present it.
-        if not obj.qr_code_image:
+        # Only ever shown once the booking is paid in full; before that the
+        # guest still owes a balance and has no entry pass.
+        if obj.status != "paid" or not obj.qr_code_image:
             return None
         try:
             return obj.qr_code_image.url

@@ -1037,9 +1037,13 @@ class UpcomingBookingsView(ListAPIView):
         today = now().date()
         return (
             Booking.objects
-            .filter(user=self.request.user,
-                    dates__date_to__gte=today,
-                    status__in=['paid','cancelled'],is_paid=True)
+            .filter(user=self.request.user, dates__date_to__gte=today)
+            # A deposit holds the dates, so the booking is genuinely upcoming
+            # even though is_paid stays False until the balance clears.
+            .filter(
+                Q(status__in=['paid', 'cancelled'], is_paid=True)
+                | Q(status='partially_paid')
+            )
             .distinct()
             .order_by('-created_at')[:1]  # still a queryset
         )
@@ -1074,7 +1078,8 @@ class PastBookingsView(ListAPIView):
         today = now().date()
         # Filter bookings where the latest booking date (date_to) is before today
         return Booking.objects.filter(
-            dates__date_to__lt=today,user=self.request.user,status__in=['paid','cancelled']
+            dates__date_to__lt=today, user=self.request.user,
+            status__in=['paid', 'cancelled', 'partially_paid']
         ).distinct().order_by('-created_at')
 
 
