@@ -1,6 +1,7 @@
 import os
+import os
 from datetime import date, timedelta, time
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
@@ -18,11 +19,59 @@ from products.models import (
 
 User = get_user_model()
 
+
+def _seed_password(env_var):
+    """Password for a seeded demo account.
+
+    Read from the environment so nothing usable lives in source control. With
+    the variable unset the account is created with an unusable password and
+    simply cannot be logged into, which is the right default for production.
+    """
+    return os.environ.get(env_var) or None
+
+
+def _apply_seed_password(user, created, env_var):
+    """Set a demo password only on an account this command just created.
+
+    These used to call set_password() unconditionally after get_or_create, so
+    re-running the seed reset the password of a *real* account that happened to
+    share the address -- including the superuser.
+    """
+    if not created:
+        return
+    pw = _seed_password(env_var)
+    if pw:
+        user.set_password(pw)
+    else:
+        user.set_unusable_password()
+    user.save()
+
+
 class Command(BaseCommand):
     help = "Seed database with reverted hut titles, 8+ bilingual events, 8+ services, and complete dashboard metrics through 2026/12/31."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--yes-i-know-this-deletes-all-bookings",
+            action="store_true",
+            dest="confirmed",
+            help="Required. This command deletes every booking before seeding.",
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
+        # Step 1 below deletes every Booking, BookingDate and ticket. That is
+        # fine for provisioning an empty environment and catastrophic anywhere
+        # else, so refuse unless the caller says so explicitly.
+        if not options.get("confirmed"):
+            existing = Booking.objects.count()
+            raise CommandError(
+                "seed_ken_data deletes ALL bookings, tickets and huts before "
+                f"seeding. This database currently holds {existing} booking(s). "
+                "Re-run with --yes-i-know-this-deletes-all-bookings if that is "
+                "really what you want."
+            )
+
         self.stdout.write(self.style.WARNING("Seeding database with expanded bilingual data & dashboard metrics..."))
 
         # 1. Clear existing data
@@ -59,7 +108,7 @@ class Command(BaseCommand):
 
         # 2. Seed Users & Suppliers
         self.stdout.write("Seeding Admin & Supplier accounts...")
-        admin_user, _ = User.objects.get_or_create(
+        admin_user, _admin_user_created = User.objects.get_or_create(
             email='admin@kenluxuryreef.com',
             defaults={
                 'first_name': 'Admin',
@@ -72,10 +121,9 @@ class Command(BaseCommand):
                 'phone': '+966500000000',
             }
         )
-        admin_user.set_password('admin123')
-        admin_user.save()
+        _apply_seed_password(admin_user, _admin_user_created, "KEN_SEED_ADMIN_PASSWORD")
 
-        supplier1, _ = User.objects.get_or_create(
+        supplier1, _supplier1_created = User.objects.get_or_create(
             email='supplier1@kenluxuryreef.com',
             defaults={
                 'first_name': 'Red Sea',
@@ -87,10 +135,9 @@ class Command(BaseCommand):
                 'breif': 'Premier Red Sea marine experiences provider.'
             }
         )
-        supplier1.set_password('supplier123')
-        supplier1.save()
+        _apply_seed_password(supplier1, _supplier1_created, "KEN_SEED_SUPPLIER_PASSWORD")
 
-        supplier2, _ = User.objects.get_or_create(
+        supplier2, _supplier2_created = User.objects.get_or_create(
             email='supplier2@kenluxuryreef.com',
             defaults={
                 'first_name': 'Desert Reef',
@@ -102,10 +149,9 @@ class Command(BaseCommand):
                 'breif': 'Authentic Saudi coastal culinary & desert shore events.'
             }
         )
-        supplier2.set_password('supplier123')
-        supplier2.save()
+        _apply_seed_password(supplier2, _supplier2_created, "KEN_SEED_SUPPLIER_PASSWORD")
 
-        guest1, _ = User.objects.get_or_create(
+        guest1, _guest1_created = User.objects.get_or_create(
             email='guest1@kenluxuryreef.com',
             defaults={
                 'first_name': 'Ahmed',
@@ -116,8 +162,7 @@ class Command(BaseCommand):
                 'phone': '+966500000003',
             }
         )
-        guest1.set_password('guest123')
-        guest1.save()
+        _apply_seed_password(guest1, _guest1_created, "KEN_SEED_GUEST_PASSWORD")
 
         # 3. Seed Locations
         self.stdout.write("Seeding Locations...")

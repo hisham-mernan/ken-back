@@ -1,0 +1,61 @@
+name: Remove seeded demo accounts
+
+# One-off cleanup. The seeder planted supplier and guest accounts whose
+# passwords were written into the source, and a public endpoint could create
+# them on production. Anyone reading the repository could sign in as a supplier
+# and read customer names, emails, phones and ID numbers.
+#
+# Manual only -- this changes production data, so it never runs on a push.
+# Uses the same DATABASE_URL secret as the migrate workflow (Supabase SESSION
+# pooler on port 5432; the direct host is IPv6-only and unreachable here).
+#
+# Run it with dry_run left ticked first to see what it would do.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report only, change nothing"
+        type: boolean
+        default: true
+
+concurrency:
+  group: remove-seed-accounts
+  cancel-in-progress: false
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Require the production connection string
+        # Without it settings.py falls back to SQLite and the job would tidy up
+        # a throwaway file in the runner and report success.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is not set - refusing to run."
+            exit 1
+          fi
+          echo "DATABASE_URL is set (${#DATABASE_URL} characters)."
+
+      - name: Remove seeded accounts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            python manage.py remove_seed_accounts --dry-run
+          else
+            python manage.py remove_seed_accounts
+          fi

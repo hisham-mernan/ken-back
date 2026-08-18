@@ -11,14 +11,12 @@ class ProductsConfig(AppConfig):
         # Global pre_save hook that downscales uploaded images (all apps).
         import core.image_optimization
 
-        try:
-            from products.models import Event
-            if not Event.objects.filter(is_active=True).exists():
-                from django.core.management import call_command
-                call_command('seed_ken_data')
-                print("[ProductsConfig] Automatically seeded database with Ken content.")
-        except Exception as e:
-            pass
+        # Deliberately no auto-seeding here. seed_ken_data begins by deleting
+        # every Booking, BookingDate and ticket in the database, and this ran
+        # on every process start -- which on Vercel is every cold start -- so
+        # deactivating the last Event was enough to wipe live bookings with no
+        # one doing anything wrong. Run the command by hand when you actually
+        # mean to provision an environment.
         
         
 # from django.apps import AppConfig
