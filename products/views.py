@@ -1,4 +1,5 @@
 from rest_framework import generics, status
+from django.core.files.storage import default_storage
 from products.utils import booking_token_matches
 from rest_framework.response import Response
 from rest_framework import serializers
@@ -1969,10 +1970,39 @@ class HutDetailAdminDashBoardView(generics.RetrieveUpdateDestroyAPIView):
                 except Exception as e:
                     print("Hut image save warning:", e)
 
+        # Removing an image in the dashboard only changed local form state
+        # before this: nothing told the server, and this view only ever added.
+        # The ids are scoped to this hut so one hut cannot delete another's.
+        delete_ids = [
+            i for i in (request.data.getlist("delete_images")
+                        if hasattr(request.data, "getlist")
+                        else request.data.get("delete_images") or [])
+            if str(i).strip().isdigit()
+        ]
+        if delete_ids:
+            to_delete = instance.images.filter(pk__in=[int(i) for i in delete_ids])
+            for hut_image in to_delete:
+                name = hut_image.image.name if hut_image.image else None
+                instance.images.remove(hut_image)
+                hut_image.delete()
+                # Drop the stored file too, but only when no other record still
+                # points at it -- otherwise a shared file would 404 elsewhere.
+                if name:
+                    still_used = (
+                        HutImages.objects.filter(image=name).exists()
+                        or Hut.objects.filter(main_image=name).exists()
+                    )
+                    if not still_used:
+                        try:
+                            default_storage.delete(name)
+                        except Exception as e:
+                            print("Hut image file delete warning:", e)
+
         if getattr(instance, '_prefetched_objects_cache', None):
             instance._prefetched_objects_cache = {}
 
-        return Response(serializer.data)
+        instance.refresh_from_db()
+        return Response(self.get_serializer(instance).data)
 
 
 
