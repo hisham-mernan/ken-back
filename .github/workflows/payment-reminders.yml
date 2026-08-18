@@ -19,6 +19,10 @@ on:
         description: "List who would be emailed without sending"
         type: boolean
         default: false
+      sample_to:
+        description: "Send one sample reminder to this address and stop (proves the mail settings)"
+        type: string
+        required: false
 
 concurrency:
   group: payment-reminders
@@ -56,7 +60,9 @@ jobs:
           EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
           MEDIA_URL: ${{ secrets.MEDIA_URL }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ -n "${{ inputs.sample_to }}" ]; then
+            python manage.py send_payment_reminders --sample-to "${{ inputs.sample_to }}"
+          elif [ "${{ inputs.dry_run }}" = "true" ]; then
             python manage.py send_payment_reminders --dry-run
           else
             python manage.py send_payment_reminders

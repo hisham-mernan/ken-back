@@ -31,10 +31,17 @@ class Command(BaseCommand):
                             help="List who would be emailed without sending.")
         parser.add_argument("--booking", type=int, default=None,
                             help="Only consider this booking id.")
+        parser.add_argument("--sample-to", default=None, metavar="EMAIL",
+                            help="Send one sample reminder to this address and "
+                                 "stop. Proves the mail credentials and the pay "
+                                 "link without needing a real part-paid booking.")
 
     def handle(self, *args, **options):
         from products.models import Booking
         from products.utils import send_balance_reminder
+
+        if options["sample_to"]:
+            return self._send_sample(options["sample_to"])
 
         dry_run = options["dry_run"]
         now = timezone.now()
@@ -103,3 +110,57 @@ class Command(BaseCommand):
             )
         else:
             self.stdout.write("\nDry run only. Re-run without --dry-run to send.")
+
+    def _send_sample(self, recipient):
+        """Send one reminder built from a throwaway booking, then discard it.
+
+        The point is to exercise the real path -- template, SMTP credentials
+        and FRONTEND_BASE_URL -- so a misconfiguration shows up here rather
+        than on a guest's first real reminder. Nothing is committed: the
+        booking is rolled back whether or not the send succeeds.
+        """
+        import datetime
+        from decimal import Decimal
+
+        from django.db import transaction
+        from products.models import Booking, BookingDate, Hut
+        from products.utils import booking_payment_link, send_balance_reminder
+
+        self.stdout.write(f"Sending a sample reminder to {recipient} ...")
+        sent = False
+        link = ""
+        try:
+            with transaction.atomic():
+                booking = Booking.objects.create(
+                    user=None, guest_name="Sample Booking",
+                    guest_email=recipient, guest_phone="+966500000000",
+                    guest_id_num="0000000000", hut=Hut.objects.first(),
+                    persons_max_num=2, kids_max_num=0,
+                    total_price=Decimal("400.00"), paid=Decimal("200.00"),
+                    not_paid=Decimal("200.00"), status="partially_paid",
+                )
+                start = timezone.localdate() + datetime.timedelta(days=30)
+                BookingDate.objects.create(booking=booking, date_from=start,
+                                           date_to=start + timedelta(days=2))
+                link = booking_payment_link(booking)
+                sent = send_balance_reminder(booking)
+                # Never keep the sample, no matter how the send went.
+                raise _Rollback()
+        except _Rollback:
+            pass
+
+        self.stdout.write(f"  pay link in the email: {link}")
+        if link.startswith("https://ken.mernantech.com"):
+            self.stdout.write(self.style.WARNING(
+                "  FRONTEND_BASE_URL is not set - that host is parked and the "
+                "link will not work."))
+        if sent:
+            self.stdout.write(self.style.SUCCESS("  sent. Check that inbox."))
+        else:
+            self.stdout.write(self.style.ERROR(
+                "  NOT sent - check EMAIL_HOST_USER / EMAIL_HOST_PASSWORD."))
+        self.stdout.write("  the sample booking was rolled back, nothing was kept.")
+
+
+class _Rollback(Exception):
+    """Used to unwind the sample booking; never escapes the command."""
