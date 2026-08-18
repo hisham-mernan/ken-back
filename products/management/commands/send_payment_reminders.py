@@ -143,7 +143,7 @@ class Command(BaseCommand):
                 BookingDate.objects.create(booking=booking, date_from=start,
                                            date_to=start + timedelta(days=2))
                 link = booking_payment_link(booking)
-                sent = send_balance_reminder(booking)
+                sent = send_balance_reminder(booking, is_sample=True)
                 # Never keep the sample, no matter how the send went.
                 raise _Rollback()
         except _Rollback:
@@ -160,6 +160,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(
                 "  NOT sent - check EMAIL_HOST_USER / EMAIL_HOST_PASSWORD."))
         self.stdout.write("  the sample booking was rolled back, nothing was kept.")
+        self.stdout.write(
+            "  NOTE: that link will show 'booking not found' -- the sample "
+            "booking no longer exists. It proves the address and the mail "
+            "settings, not a live booking."
+        )
 
 
 class _Rollback(Exception):

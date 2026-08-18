@@ -639,7 +639,7 @@ def booking_payment_link(booking):
     return f"{base}/my-booking"
 
 
-def send_balance_reminder(booking):
+def send_balance_reminder(booking, is_sample=False):
     """Email a reminder that a balance is still outstanding.
 
     Returns True when sent. Never raises: one bad address must not stop the
@@ -670,10 +670,16 @@ def send_balance_reminder(booking):
                 "payment_link": booking_payment_link(booking),
                 "amount_due": booking.not_paid,
                 "amount_paid": booking.paid,
+                # A sample is sent from a booking that is rolled back straight
+                # after, so its link cannot resolve. Say so in the email rather
+                # than let it look like a broken site.
+                "is_sample": is_sample,
             },
         )
         message = EmailMultiAlternatives(
-            subject=f"KEN - Balance due for booking #{booking.pk}",
+            subject=(f"[TEST] KEN - sample balance reminder"
+                     if is_sample else
+                     f"KEN - Balance due for booking #{booking.pk}"),
             body=strip_tags(html),
             from_email=settings.EMAIL_HOST_USER,
             to=[recipient],

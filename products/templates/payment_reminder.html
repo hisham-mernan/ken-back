@@ -10,6 +10,15 @@
             <h1 style="margin:0; color:#ffffff; font-size:22px;">Your balance is still outstanding</h1>
           </td></tr>
 
+          {% if is_sample %}
+          <tr><td style="padding:16px 24px; background-color:#fff3cd; color:#664d03; font-size:13px;">
+            <strong>This is a test.</strong> It was sent to check the mail settings.
+            The button below will say the booking cannot be found, because the sample
+            booking is discarded as soon as this email is sent. A real reminder links
+            to a real booking.
+          </td></tr>
+          {% endif %}
+
           <tr><td style="padding:24px;">
             <p style="margin:0 0 16px;">Hello {{ contact_name }},</p>
             <p style="margin:0 0 24px;">
