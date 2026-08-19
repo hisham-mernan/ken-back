@@ -10,6 +10,7 @@ the customer's card has already been charged, so a Daftra outage must not fail
 the booking or the payment. Failures are logged and the booking simply carries
 no invoice until the next attempt.
 """
+import base64
 import logging
 from decimal import Decimal
 
@@ -165,6 +166,29 @@ def _invoice_urls(details, base_url, invoice_id):
     return str(number), html_url, pdf_url
 
 
+PNG_MAGIC = bytes([0x89, 0x50, 0x4E, 0x47])
+
+
+def _fetch_qr(url):
+    """Daftra's own ZATCA QR image, base64 encoded, or None.
+
+    Fetched anonymously: unlike the invoice links, Daftra serves this image
+    without a session. Best-effort -- an invoice is still valid without it.
+    """
+    if not url:
+        return None
+    try:
+        response = requests.get(url, timeout=settings.DAFTRA_TIMEOUT)
+        if response.status_code == 200 and response.content[:4] == PNG_MAGIC:
+            return base64.b64encode(response.content).decode("ascii")
+        logger.warning(
+            "Daftra QR fetch returned %s (%s bytes)", response.status_code, len(response.content)
+        )
+    except requests.RequestException as exc:
+        logger.warning("Could not fetch Daftra QR: %s", exc)
+    return None
+
+
 def build_invoice_items(booking):
     """Line items for a booking plus any discount needed to reconcile them.
 
@@ -292,15 +316,28 @@ def sync_booking_invoice(booking, *, amount, transaction_id=""):
                 transaction_id=transaction_id,
             )
 
+        details = _safe_details(client, record.daftra_id)
         number, html_url, pdf_url = _invoice_urls(
-            _safe_details(client, record.daftra_id),
-            settings.DAFTRA_BASE_URL,
-            record.daftra_id,
+            details, settings.DAFTRA_BASE_URL, record.daftra_id
         )
         record.invoice_number = number
         record.invoice_url = html_url
         record.pdf_url = pdf_url
-        record.save(update_fields=["invoice_number", "invoice_url", "pdf_url"])
+
+        # Take Daftra's own QR so the invoice we render carries the identical
+        # code. Re-read on every sync: the balance payment can change what the
+        # QR encodes.
+        invoice = ((details or {}).get("data") or {}).get("Invoice") or {}
+        qr_url = invoice.get("qr_code_url") or ""
+        if qr_url:
+            record.qr_code_url = qr_url
+            fetched = _fetch_qr(qr_url)
+            if fetched:
+                record.qr_code_png = fetched
+
+        record.save(update_fields=[
+            "invoice_number", "invoice_url", "pdf_url", "qr_code_url", "qr_code_png",
+        ])
 
         # Mirrored onto the booking so existing serializers expose it without
         # every caller needing to know about DaftraInvoice -- but only when the

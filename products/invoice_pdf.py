@@ -5,9 +5,11 @@ Daftra account, so the copy the customer actually receives is rendered here.
 Daftra remains the book of record; this is the same document in a form we can
 hand to someone who is not a Daftra user.
 
-Carries the ZATCA QR. It is generated locally from the same TLV fields Daftra
-encodes, so rendering needs no network call and cannot fail because Daftra is
-slow or down.
+Carries the ZATCA QR. It is Daftra's own QR image, stored on the invoice record
+when the invoice is raised, so scanning our copy and scanning Daftra's give the
+same result. Storing the image rather than the link keeps rendering offline. A
+locally generated QR is only a fallback for a booking with no Daftra invoice --
+it can differ, because Daftra encodes its own company profile and timestamp.
 """
 import base64
 import io
@@ -194,15 +196,29 @@ def render_invoice_pdf(booking):
     pdf.drawString(22.5, _y(totals_top + 20), f"Booking #{booking.pk}")
 
     # ------------------------------------------------------------- zatca qr
+    # Daftra's own QR, byte for byte, so scanning our invoice and scanning
+    # theirs give the same result. Only if it is missing do we fall back to
+    # generating one, which can differ: Daftra encodes its own company profile
+    # and its own invoice timestamp, not ours.
     try:
-        payload = zatca_tlv(
-            seller=settings.INVOICE_SELLER_NAME,
-            vat=settings.INVOICE_SELLER_VAT,
-            timestamp=issued.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            total=_money(total),
-            vat_amount="0",
-        )
-        pdf.drawImage(_qr_image(payload), 23, 59, width=68, height=68, mask="auto")
+        image = None
+        if record and record.qr_code_png:
+            image = ImageReader(io.BytesIO(base64.b64decode(record.qr_code_png)))
+        else:
+            logger.info(
+                "No Daftra QR stored for booking %s; generating one locally",
+                booking.pk,
+            )
+            image = _qr_image(
+                zatca_tlv(
+                    seller=settings.INVOICE_SELLER_NAME,
+                    vat=settings.INVOICE_SELLER_VAT,
+                    timestamp=issued.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    total=_money(total),
+                    vat_amount="0",
+                )
+            )
+        pdf.drawImage(image, 23, 59, width=68, height=68, mask="auto")
         pdf.setFont("Helvetica", 7)
         pdf.setFillColorRGB(*GREY)
         pdf.drawString(23, 48, "ZATCA e-invoice QR")

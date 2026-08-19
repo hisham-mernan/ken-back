@@ -5,6 +5,7 @@ with a second payment when the balance is settled. The invoice must never be
 duplicated, and a Daftra outage must never break a payment that already went
 through.
 """
+import io
 import shutil
 import tempfile
 from datetime import timedelta
@@ -74,6 +75,7 @@ class FakeDaftra:
                         "Invoice": {
                             "no": "INV-9001",
                             "invoice_html_url": "https://other.daftra.com/invoices/view/9001",
+                            "qr_code_url": "https://example-sub.daftra.com/qr/?d64=AQ==",
                         }
                     }
                 }
@@ -167,6 +169,55 @@ class DaftraFlowTests(TestCase):
             self.assertEqual(len(payments), 1)
             self.assertEqual(payments[0][2]["InvoicePayment"]["amount"], 200.0)
             self.assertEqual(DaftraInvoice.objects.filter(booking=booking).count(), 1)
+
+    @daftra_env
+    def test_the_pdf_carries_daftras_own_qr_not_a_regenerated_one(self):
+        """Scanning our invoice must give the same result as scanning Daftra's,
+        so the image is taken from Daftra rather than rebuilt from our own
+        company profile and timestamp."""
+        import base64 as b64
+        from unittest.mock import Mock
+
+        from PIL import Image
+        from pypdf import PdfReader
+
+        from .invoice_pdf import render_invoice_pdf
+
+        # A recognisable 66x66 PNG standing in for Daftra's QR.
+        source = Image.new("1", (66, 66), 1)
+        for i in range(0, 66, 3):
+            source.putpixel((i, i), 0)
+        raw = io.BytesIO()
+        source.save(raw, format="PNG")
+        png = raw.getvalue()
+
+        fake = FakeDaftra()
+        with patch("products.daftra.requests.request", side_effect=fake), patch(
+            "products.daftra.requests.get",
+            return_value=Mock(status_code=200, content=png),
+        ):
+            booking = self.make_booking()
+            self.pay_deposit(booking)
+
+        record = DaftraInvoice.objects.get(booking=booking)
+        self.assertEqual(b64.b64decode(record.qr_code_png), png,
+                         "Daftra's QR image must be stored verbatim")
+
+        pdf = render_invoice_pdf(booking)
+        embedded = [
+            Image.open(io.BytesIO(i.data)).convert("1")
+            for i in PdfReader(io.BytesIO(pdf)).pages[0].images
+            if Image.open(io.BytesIO(i.data)).size == (66, 66)
+        ]
+        self.assertTrue(embedded, "the QR should be embedded in the invoice")
+        # Compare the pattern, not the raw values: a mode "1" image reads back
+        # as 0/255 out of the PDF and 0/1 from PIL directly.
+        as_bits = lambda img: [1 if px else 0 for px in img.getdata()]
+        self.assertEqual(
+            as_bits(embedded[0]),
+            as_bits(source.convert("1")),
+            "the QR in our PDF must be pixel-identical to Daftra's",
+        )
 
     @daftra_env
     def test_emails_carry_no_invoice_link_at_all(self):

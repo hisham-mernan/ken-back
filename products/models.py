@@ -388,6 +388,12 @@ class DaftraInvoice(models.Model):
     invoice_number = models.CharField(max_length=100)
     invoice_url = models.URLField(blank=True, null=True)
     pdf_url = models.URLField(blank=True, null=True)
+    # Daftra renders its own ZATCA QR and serves it publicly. We store the image
+    # itself, not just the link, so the invoice we render carries the identical
+    # QR without a network call at render time -- regenerating it locally would
+    # drift the moment Daftra's company profile or timestamp differed from ours.
+    qr_code_url = models.URLField(max_length=500, blank=True, null=True)
+    qr_code_png = models.TextField(blank=True, null=True, help_text="base64 PNG")
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
