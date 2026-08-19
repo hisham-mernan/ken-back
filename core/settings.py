@@ -446,6 +446,15 @@ DAFTRA_TIMEOUT = int(os.getenv("DAFTRA_TIMEOUT", "15"))
 # are confirmed viewable without signing in.
 DAFTRA_INVOICE_LINKS_PUBLIC = os.getenv("DAFTRA_INVOICE_LINKS_PUBLIC", "false").lower() == "true"
 
+# Seller details printed on the invoice we render, and encoded into its ZATCA
+# QR. VAT number is blank by default because Daftra's own company profile has
+# it blank -- a ZATCA tax QR is meant to carry it, so fill this in.
+INVOICE_SELLER_NAME = os.getenv("INVOICE_SELLER_NAME", "KEN Countryside Huts")
+INVOICE_SELLER_VAT = os.getenv("INVOICE_SELLER_VAT", "")
+INVOICE_SELLER_ADDRESS = os.getenv(
+    "INVOICE_SELLER_ADDRESS", "Ash Shati, Jeddah\nSaudi Arabia"
+)
+
 DAFTRA_ENABLED = bool(DAFTRA_BASE_URL and DAFTRA_API_KEY)
 
 # HyperPay/OPPWA Payment Gateway Settings

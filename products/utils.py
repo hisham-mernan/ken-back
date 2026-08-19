@@ -509,6 +509,31 @@ def change_booking_status(booking, new_status):
     }
 
 
+def attach_invoice_pdf(message, booking):
+    """Attach the booking's invoice to an outgoing email.
+
+    The customer's copy travels with the email rather than as a link, because
+    Daftra's own invoice links redirect to a Daftra sign-in and a guest has no
+    Daftra account. Never raises: a failed render must not stop a confirmation
+    that a paying customer is waiting for.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+    try:
+        from .invoice_pdf import render_invoice_pdf
+
+        message.attach(
+            f"invoice-booking-{booking.pk}.pdf",
+            render_invoice_pdf(booking),
+            "application/pdf",
+        )
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not attach invoice for booking %s: %s", booking.pk, exc)
+        return False
+
+
 def send_booking_confirmation(booking):
     """Email the booker their confirmation, booking details and QR code.
 
@@ -566,6 +591,8 @@ def send_booking_confirmation(booking):
             to=[recipient],
         )
         message.attach_alternative(html, "text/html")
+
+        attach_invoice_pdf(message, booking)
 
         qr_bytes = _booking_qr_bytes(booking)
         if qr_bytes:
@@ -738,6 +765,7 @@ def send_deposit_confirmation(booking):
             to=[recipient],
         )
         message.attach_alternative(html, "text/html")
+        attach_invoice_pdf(message, booking)
         message.send(fail_silently=False)
         logger.info("Deposit confirmation sent to %s for booking %s", recipient[:50], booking.pk)
         return True

@@ -1,4 +1,5 @@
 import logging
+from django.http import HttpResponse
 
 logger = logging.getLogger(__name__)
 
@@ -1262,10 +1263,54 @@ class SendBookingToDarevueView(APIView):
 
 
 
-# The invoice link is exposed through the booking serializers, which are
-# already scoped to the owner or the guest access token. A standalone
-# by-booking-id endpoint would hand any invoice to anyone who could guess a
-# number, so there deliberately isn't one.
+class BookingInvoicePdfView(APIView):
+    """Serve a booking's invoice PDF.
+
+    Daftra's own invoice links redirect to a Daftra sign-in and a guest has no
+    Daftra account, so the customer's copy is rendered here instead.
+
+    Never scoped by booking id alone: the caller must either own the booking or
+    present its access token, otherwise sequential ids would walk the whole
+    invoice book.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, booking_id):
+        booking = Booking.objects.filter(pk=booking_id).select_related("hut").first()
+        if not booking:
+            return Response({"error": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        token = request.query_params.get("access_token")
+        owns_it = (
+            request.user.is_authenticated
+            and booking.user_id
+            and booking.user_id == request.user.id
+        )
+        staff = request.user.is_authenticated and (
+            request.user.is_staff or getattr(request.user, "role", None) == "admin"
+        )
+        if not (owns_it or staff or booking_token_matches(token, booking.access_token)):
+            return Response(
+                {"error": "Not authorised for this booking."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Nothing has been billed until money moves, so do not hand out an
+        # invoice for a booking that is still only pending or confirmed.
+        if booking.status not in ("partially_paid", "paid"):
+            return Response(
+                {"error": "This booking has no invoice yet."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        from .invoice_pdf import render_invoice_pdf
+
+        pdf = render_invoice_pdf(booking)
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'inline; filename="invoice-booking-{booking.pk}.pdf"'
+        )
+        return response
     
     
     

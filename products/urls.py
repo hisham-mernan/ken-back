@@ -44,6 +44,7 @@ urlpatterns = [
     # How a guest reaches their own booking: no account, so the token from the
     # confirmation email stands in for authentication.
     path('bookings/by-token/<uuid:access_token>/', BookingByTokenView.as_view(), name='booking-by-token'),
+    path('bookings/<int:booking_id>/invoice.pdf', BookingInvoicePdfView.as_view(), name='booking-invoice-pdf'),
      path('bookings-qr/<int:pk>/',  BookingDetailForAminQrView.as_view(), name='booking-detail'),
      path('booking/paid/<int:pk>/', PaidBookingIfLastConfirmedView.as_view()),
      path('booking/payment-details/<int:pk>/',  PaidBookingIfLastConfirmedDetailsView.as_view()),

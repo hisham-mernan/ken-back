@@ -186,6 +186,33 @@ class DaftraFlowTests(TestCase):
             self.assertIn("/invoices/view/9001", confirmations[0].alternatives[0][0])
 
     @daftra_env
+    def test_both_emails_carry_the_invoice_pdf(self):
+        """Daftra's links need a Daftra login, so the document itself travels
+        with the email rather than a link to it."""
+        fake = FakeDaftra()
+        with patch("products.daftra.requests.request", side_effect=fake):
+            booking = self.make_booking()
+            mail.outbox = []
+            self.pay_deposit(booking)
+            deposit = [m for m in mail.outbox if "Deposit received" in m.subject][0]
+
+            mail.outbox = []
+            self.pay_balance(booking)
+            confirmation = [m for m in mail.outbox if "confirmed" in m.subject][0]
+
+        for label, message in (("deposit", deposit), ("confirmation", confirmation)):
+            with self.subTest(email=label):
+                # The confirmation also carries the entry QR as a MIMEImage,
+                # so attachments is a mixed list of tuples and MIME objects.
+                pdfs = [
+                    a for a in message.attachments
+                    if isinstance(a, tuple) and str(a[0]).endswith(".pdf")
+                ]
+                self.assertEqual(len(pdfs), 1, f"{label} email must carry the invoice")
+                self.assertTrue(pdfs[0][1].startswith(b"%PDF"))
+                self.assertEqual(pdfs[0][2], "application/pdf")
+
+    @daftra_env
     def test_configured_payment_method_reaches_both_payments(self):
         fake = FakeDaftra()
         with patch("products.daftra.requests.request", side_effect=fake):
