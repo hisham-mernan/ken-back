@@ -92,7 +92,7 @@ class DaftraClient:
 
     # ----------------------------------------------------------------- invoices
 
-    def create_invoice(self, *, client_id, items, date, notes, payments):
+    def create_invoice(self, *, client_id, items, date, notes, payments, discount=0):
         invoice = {
             "client_id": client_id,
             "type": 0,
@@ -102,6 +102,8 @@ class DaftraClient:
             "notes": notes,
             "store_id": settings.DAFTRA_STORE_ID,
         }
+        if discount:
+            invoice["discount_amount"] = float(discount)
         # Omitted entirely when unset so Daftra falls back to the account's
         # default layout rather than rejecting a null id.
         if settings.DAFTRA_INVOICE_LAYOUT_ID:
@@ -143,6 +145,7 @@ def _invoice_urls(details, base_url, invoice_id):
     """Pull the viewable and PDF links out of an invoice detail response."""
     invoice = ((details or {}).get("data") or {}).get("Invoice") or {}
     number = invoice.get("no") or invoice.get("invoice_number") or str(invoice_id)
+
     html_url = invoice.get("invoice_html_url") or ""
     # Daftra returns an absolute URL on a different host in some accounts; keep
     # only the path so the link always points at the configured subdomain.
@@ -150,15 +153,26 @@ def _invoice_urls(details, base_url, invoice_id):
         html_url = base_url + html_url[html_url.index("/invoices"):]
     else:
         html_url = f"{base_url}/invoices/view/{invoice_id}"
-    pdf_url = html_url if html_url.endswith(".pdf") else f"{html_url}.pdf"
+
+    # Daftra supplies its own PDF link. Appending ".pdf" to the view URL used to
+    # produce a dead link, because that URL carries a ?hash query string.
+    pdf_url = invoice.get("invoice_pdf_url") or ""
+    if "/invoices" in pdf_url:
+        pdf_url = base_url + pdf_url[pdf_url.index("/invoices"):]
+    elif not pdf_url:
+        pdf_url = html_url
+
     return str(number), html_url, pdf_url
 
 
 def build_invoice_items(booking):
-    """Line items for a booking, priced exactly as the dashboard prices them.
+    """Line items for a booking plus any discount needed to reconcile them.
 
     Reuses the admin order serializer rather than recomputing rates, so an
-    invoice can never disagree with the order it bills for.
+    invoice can never disagree with the order it bills for. Returns
+    ``(items, discount_amount)``: a promo code reduces booking.total_price
+    without touching the lines, so the difference is billed as a discount and
+    the invoice total always equals what was actually charged.
     """
     from .serializers import BookingDetailsAdminSerializer
 
@@ -180,15 +194,38 @@ def build_invoice_items(booking):
     if not items:
         # Never raise an empty invoice: bill the booking as a single line so the
         # customer still gets a document that matches what they paid.
-        items = [
+        return [
             {
                 "item": f"Booking #{booking.pk}",
                 "description": booking.hut.title if booking.hut else "",
                 "unit_price": float(booking.total_price or 0),
                 "quantity": 1,
             }
-        ]
-    return items
+        ], Decimal("0.00")
+
+    itemised = sum(
+        Decimal(str(i["unit_price"])) * Decimal(str(i["quantity"])) for i in items
+    )
+    total = Decimal(str(booking.total_price or 0))
+    discount = itemised - total
+
+    if discount < Decimal("-0.01"):
+        # Charged more than the lines account for. Rather than issue an invoice
+        # for less than was taken, bill it as one line for the real amount.
+        logger.warning(
+            "Booking %s items total %s but %s was charged; billing as one line",
+            booking.pk, itemised, total,
+        )
+        return [
+            {
+                "item": f"Booking #{booking.pk}",
+                "description": booking.hut.title if booking.hut else "",
+                "unit_price": float(total),
+                "quantity": 1,
+            }
+        ], Decimal("0.00")
+
+    return items, max(discount, Decimal("0.00"))
 
 
 def sync_booking_invoice(booking, *, amount, transaction_id=""):
@@ -231,12 +268,14 @@ def sync_booking_invoice(booking, *, amount, transaction_id=""):
                     }
                 ]
 
+            items, discount = build_invoice_items(booking)
             invoice_id = client.create_invoice(
                 client_id=client_id,
-                items=build_invoice_items(booking),
+                items=items,
                 date=date,
                 notes=f"Booking #{booking.pk}",
                 payments=payments,
+                discount=discount,
             )
             if not invoice_id:
                 raise DaftraError("invoice created but no id returned")
@@ -264,9 +303,20 @@ def sync_booking_invoice(booking, *, amount, transaction_id=""):
         record.save(update_fields=["invoice_number", "invoice_url", "pdf_url"])
 
         # Mirrored onto the booking so existing serializers expose it without
-        # every caller needing to know about DaftraInvoice.
-        type(booking).objects.filter(pk=booking.pk).update(invoice_url=html_url)
-        booking.invoice_url = html_url
+        # every caller needing to know about DaftraInvoice -- but only when the
+        # link actually opens for a customer. Daftra's preview and .pdf links
+        # both redirect to a Daftra login unless the account exposes them, and a
+        # guest has no Daftra account, so publishing one by default would email
+        # people a sign-in page. The record above keeps it for staff regardless.
+        if getattr(settings, "DAFTRA_INVOICE_LINKS_PUBLIC", False):
+            type(booking).objects.filter(pk=booking.pk).update(invoice_url=html_url)
+            booking.invoice_url = html_url
+        else:
+            logger.info(
+                "Invoice %s raised for booking %s; link withheld until "
+                "DAFTRA_INVOICE_LINKS_PUBLIC is set",
+                record.invoice_number, booking.pk,
+            )
         return record
 
     except DaftraError as exc:

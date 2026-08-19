@@ -58,40 +58,34 @@ class Command(BaseCommand):
         )
         configured = getattr(settings, "DAFTRA_PAYMENT_METHOD", "")
         methods = []
-        # Daftra validates payment_method against the methods enabled on the
-        # account, and the slug differs between accounts, so list rather than
-        # assume one is right.
-        for path in (
-            "payment_methods.json",
-            "settings/payment_methods.json",
-            "payment_options.json",
-        ):
-            try:
-                data = client._call("GET", path)
-            except DaftraError:
-                continue
-            rows = data if isinstance(data, list) else (data.get("data") or [])
-            for row in rows:
-                method = row.get("PaymentMethod") or row.get("PaymentOption") or row
-                slug = method.get("code") or method.get("slug") or method.get("id")
-                label = method.get("name") or method.get("title") or ""
-                marker = ok("  <- configured") if str(slug) == str(configured) else ""
-                self.stdout.write(f"  {slug}  {label}{marker}")
-                methods.append(str(slug))
-            if methods:
-                break
+        # There is no payment-methods endpoint. Daftra accepts
+        # manual_payment_<treasury_id>, so the treasuries are the list -- free
+        # text like "credit_card" is rejected as "not active or incorrect".
+        try:
+            data = client._call("GET", "treasuries.json")
+        except DaftraError as exc:
+            data = None
+            self.stdout.write(warn(f"  could not list treasuries: {exc}"))
 
-        if not methods:
+        for row in (data or {}).get("data") or []:
+            treasury = row.get("Treasury") or row
+            slug = f"manual_payment_{treasury.get('id')}"
+            label = treasury.get("name") or ""
+            live = str(treasury.get("active")) == "1"
+            marker = ok("  <- configured") if slug == str(configured) else ""
             self.stdout.write(
-                warn(
-                    f"  Could not list them. DAFTRA_PAYMENT_METHOD is '{configured}';\n"
-                    "  if a payment is rejected as an invalid method, copy the exact\n"
-                    "  value from Daftra > Settings > Payment Methods."
-                )
+                f"  {slug}  {label}{'' if live else ' (inactive)'}{marker}"
             )
-        elif str(configured) not in methods:
+            if live:
+                methods.append(slug)
+
+        if methods and str(configured) not in methods:
             self.stdout.write(
                 bad(f"  '{configured}' is NOT one of the above - payments will be rejected.")
+            )
+            self.stdout.write(
+                warn("  To label payments as a card, add that payment method in Daftra\n"
+                     "  and set DAFTRA_PAYMENT_METHOD to its manual_payment_<id>.")
             )
 
         self.stdout.write("\nInvoice layouts (use one of these ids for DAFTRA_INVOICE_LAYOUT_ID)")

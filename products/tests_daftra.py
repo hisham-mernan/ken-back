@@ -36,6 +36,8 @@ daftra_env = override_settings(
     DAFTRA_STORE_ID="0",
     DAFTRA_PAYMENT_METHOD="credit_card",
     DAFTRA_TIMEOUT=5,
+    # Most tests assert on the customer-facing link, so opt in explicitly.
+    DAFTRA_INVOICE_LINKS_PUBLIC=True,
 )
 
 
@@ -206,6 +208,36 @@ class DaftraFlowTests(TestCase):
         created = fake.posted_to("clients.json")
         self.assertEqual(len(created), 1)
         self.assertEqual(created[0][2]["Client"]["email"], "guest@example.invalid")
+
+    @override_settings(
+        MEDIA_ROOT=MEDIA,
+        STORAGES=LOCAL_STORAGE,
+        DAFTRA_ENABLED=True,
+        DAFTRA_BASE_URL="https://example-sub.daftra.com",
+        DAFTRA_API_KEY="test-key-not-real",
+        DAFTRA_PAYMENT_METHOD="manual_payment_1",
+        DAFTRA_TIMEOUT=5,
+        DAFTRA_INVOICE_LINKS_PUBLIC=False,
+    )
+    def test_link_is_withheld_from_customers_until_it_is_viewable(self):
+        """Daftra's links redirect to a sign-in page unless the account exposes
+        them, and a guest has no Daftra account. The invoice is still raised
+        and recorded for staff -- only the customer-facing link is held back."""
+        fake = FakeDaftra()
+        with patch("products.daftra.requests.request", side_effect=fake):
+            booking = self.make_booking()
+            mail.outbox = []
+            self.pay_deposit(booking)
+
+        self.assertEqual(len(fake.posted_to("invoices.json")), 1,
+                         "the invoice must still be raised in Daftra")
+        record = DaftraInvoice.objects.get(booking=booking)
+        self.assertTrue(record.invoice_url, "staff record must keep the link")
+
+        booking.refresh_from_db()
+        self.assertFalse(booking.invoice_url, "customers must not get a sign-in link")
+        for message in mail.outbox:
+            self.assertNotIn("daftra.com", message.alternatives[0][0])
 
     @daftra_env
     def test_daftra_outage_does_not_break_the_payment(self):

@@ -425,8 +425,11 @@ EMAIL_HOST_PASSWORD = "jfcxprwtjykdexfm"
 #   DAFTRA_PAYMENT_METHOD     payment method recorded against payments. Must be
 #                             one of the methods ACTIVE in your Daftra account,
 #                             so confirm it with `manage.py check_daftra`.
-#                             Defaults to credit_card: takings arrive via
-#                             HyperPay, which is a card gateway.
+#                             Daftra accepts manual_payment_<treasury_id>,
+#                             not free text: 'credit_card' is rejected with
+#                             "payment method ... is not active or incorrect".
+#                             manual_payment_1 is the standard Main Treasury.
+#                             `check_daftra` lists the ids on your account.
 #
 # With base url or api key unset the integration stays dormant: bookings and
 # payments work exactly as before and simply carry no invoice.
@@ -434,8 +437,15 @@ DAFTRA_BASE_URL = (os.getenv("DAFTRA_BASE_URL") or "").rstrip("/")
 DAFTRA_API_KEY = os.getenv("DAFTRA_API_KEY") or ""
 DAFTRA_INVOICE_LAYOUT_ID = os.getenv("DAFTRA_INVOICE_LAYOUT_ID") or None
 DAFTRA_STORE_ID = os.getenv("DAFTRA_STORE_ID", "0")
-DAFTRA_PAYMENT_METHOD = os.getenv("DAFTRA_PAYMENT_METHOD", "credit_card")
+DAFTRA_PAYMENT_METHOD = os.getenv("DAFTRA_PAYMENT_METHOD", "manual_payment_1")
 DAFTRA_TIMEOUT = int(os.getenv("DAFTRA_TIMEOUT", "15"))
+# Daftra's invoice links (both the preview and the .pdf) redirect to a Daftra
+# login unless the account exposes them to clients, so by default the invoice is
+# raised and recorded but the link is NOT shown to customers -- a guest has no
+# Daftra account and would land on a sign-in page. Set this true once the links
+# are confirmed viewable without signing in.
+DAFTRA_INVOICE_LINKS_PUBLIC = os.getenv("DAFTRA_INVOICE_LINKS_PUBLIC", "false").lower() == "true"
+
 DAFTRA_ENABLED = bool(DAFTRA_BASE_URL and DAFTRA_API_KEY)
 
 # HyperPay/OPPWA Payment Gateway Settings
