@@ -509,22 +509,6 @@ def change_booking_status(booking, new_status):
     }
 
 
-def booking_invoice_link(booking):
-    """Link to the booking's invoice PDF, served by us rather than Daftra.
-
-    Carries the access token for a guest booking, since a guest has no account
-    to authenticate with -- the same token that already lets them reopen the
-    booking itself.
-    """
-    from django.conf import settings
-
-    base = settings.BACKEND_BASE_URL.rstrip("/")
-    url = f"{base}/api/products/bookings/{booking.pk}/invoice.pdf"
-    if booking.is_guest_booking and booking.access_token:
-        url = f"{url}?access_token={booking.access_token}"
-    return url
-
-
 def attach_invoice_pdf(message, booking):
     """Attach the booking's invoice to an outgoing email.
 
@@ -593,7 +577,6 @@ def send_booking_confirmation(booking):
             "hut": booking.hut,
             "is_guest": booking.is_guest_booking,
             "booking_link": booking_link,
-            "invoice_url": booking_invoice_link(booking),
             # Referenced by the template as an inline attachment, so the code
             # still shows when a client blocks remote images.
             "qr_cid": "booking_qr",
@@ -771,8 +754,7 @@ def send_deposit_confirmation(booking):
                 "payment_link": booking_payment_link(booking),
                 "amount_paid": booking.paid,
                 "amount_due": booking.not_paid,
-                "invoice_url": booking_invoice_link(booking),
-            },
+                },
         )
         message = EmailMultiAlternatives(
             subject=f"KEN - Deposit received for booking #{booking.pk}",

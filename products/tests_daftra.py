@@ -169,31 +169,26 @@ class DaftraFlowTests(TestCase):
             self.assertEqual(DaftraInvoice.objects.filter(booking=booking).count(), 1)
 
     @daftra_env
-    def test_both_emails_link_to_our_invoice_not_daftras(self):
-        """Daftra's link needs a Daftra login, so the email points at the copy
-        we serve, carrying the guest token so a guest can open it."""
+    def test_emails_carry_no_invoice_link_at_all(self):
+        """The invoice travels as an attachment, not a link. Daftra's own link
+        needs a Daftra login a guest cannot get past, and a link to our copy was
+        dropped in favour of the document itself."""
         fake = FakeDaftra()
         with patch("products.daftra.requests.request", side_effect=fake):
             booking = self.make_booking()
             mail.outbox = []
             self.pay_deposit(booking)
-            deposit_mail = [m for m in mail.outbox if "Deposit received" in m.subject]
-            self.assertTrue(deposit_mail, "deposit email should have been sent")
-
+            deposit = [m for m in mail.outbox if "Deposit received" in m.subject][0]
             mail.outbox = []
             self.pay_balance(booking)
-            confirmations = [m for m in mail.outbox if "confirmed" in m.subject]
-            self.assertTrue(confirmations, "confirmation email should have been sent")
+            confirmation = [m for m in mail.outbox if "confirmed" in m.subject][0]
 
-        expected = f"/api/products/bookings/{booking.pk}/invoice.pdf"
-        for label, message in (("deposit", deposit_mail[0]), ("confirmation", confirmations[0])):
+        for label, message in (("deposit", deposit), ("confirmation", confirmation)):
             with self.subTest(email=label):
                 html = message.alternatives[0][0]
-                self.assertIn(expected, html)
-                self.assertIn(str(booking.access_token), html,
-                              "a guest needs the token to open it")
-                self.assertNotIn("daftra.com", html,
-                                 "must not send anyone to a Daftra sign-in")
+                self.assertNotIn("daftra.com", html)
+                self.assertNotIn("invoice.pdf?", html)
+                self.assertNotIn("/invoice.pdf", html)
 
     @daftra_env
     def test_both_emails_carry_the_invoice_pdf(self):
