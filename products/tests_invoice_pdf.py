@@ -94,6 +94,9 @@ class InvoiceEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
+        # Saved, not opened in a viewer tab.
+        self.assertIn("attachment", response["Content-Disposition"])
+        self.assertIn(f"invoice-booking-{booking.pk}.pdf", response["Content-Disposition"])
 
     def test_a_stranger_cannot_walk_invoices_by_id(self):
         booking = make_booking()

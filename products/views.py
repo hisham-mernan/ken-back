@@ -1307,8 +1307,10 @@ class BookingInvoicePdfView(APIView):
 
         pdf = render_invoice_pdf(booking)
         response = HttpResponse(pdf, content_type="application/pdf")
+        # attachment, not inline: the invoice is something the customer keeps,
+        # and a plain link should save it rather than open a viewer tab.
         response["Content-Disposition"] = (
-            f'inline; filename="invoice-booking-{booking.pk}.pdf"'
+            f'attachment; filename="invoice-booking-{booking.pk}.pdf"'
         )
         return response
     
