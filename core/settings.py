@@ -449,6 +449,12 @@ DAFTRA_INVOICE_LINKS_PUBLIC = os.getenv("DAFTRA_INVOICE_LINKS_PUBLIC", "false").
 # Seller details printed on the invoice we render, and encoded into its ZATCA
 # QR. VAT number is blank by default because Daftra's own company profile has
 # it blank -- a ZATCA tax QR is meant to carry it, so fill this in.
+# Public origin of this API, used to build invoice links that must work from
+# an email client. Distinct from FRONTEND_BASE_URL, which is the website.
+BACKEND_BASE_URL = (
+    os.getenv("BACKEND_BASE_URL") or "https://ken-back.vercel.app"
+).rstrip("/")
+
 INVOICE_SELLER_NAME = os.getenv("INVOICE_SELLER_NAME", "KEN Countryside Huts")
 INVOICE_SELLER_VAT = os.getenv("INVOICE_SELLER_VAT", "")
 INVOICE_SELLER_ADDRESS = os.getenv(
