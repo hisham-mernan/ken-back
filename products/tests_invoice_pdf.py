@@ -16,7 +16,7 @@ from django.utils.timezone import now
 from .models import Booking, BookingDate, Hut
 
 SELLER = dict(
-    INVOICE_SELLER_NAME="KEN Countryside Huts",
+    INVOICE_SELLER_NAME="Ken Al Reef",
     INVOICE_SELLER_VAT="300000000000003",
     INVOICE_SELLER_ADDRESS="Ash Shati, Jeddah",
 )
@@ -62,7 +62,7 @@ class InvoiceRenderTests(TestCase):
         from .invoice_pdf import zatca_tlv
 
         encoded = zatca_tlv(
-            seller="KEN Countryside Huts",
+            seller="Ken Al Reef",
             vat="300000000000003",
             timestamp="2026-08-19T10:00:00Z",
             total="400.00",
@@ -75,7 +75,7 @@ class InvoiceRenderTests(TestCase):
             found[tag] = raw[i + 2 : i + 2 + length].decode()
             i += 2 + length
 
-        self.assertEqual(found[1], "KEN Countryside Huts")
+        self.assertEqual(found[1], "Ken Al Reef")
         self.assertEqual(found[2], "300000000000003")
         self.assertEqual(found[3], "2026-08-19T10:00:00Z")
         self.assertEqual(found[4], "400.00")
