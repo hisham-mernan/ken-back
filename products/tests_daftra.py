@@ -34,7 +34,7 @@ daftra_env = override_settings(
     DAFTRA_API_KEY="test-key-not-real",
     DAFTRA_INVOICE_LAYOUT_ID="42",
     DAFTRA_STORE_ID="0",
-    DAFTRA_PAYMENT_METHOD="cash",
+    DAFTRA_PAYMENT_METHOD="credit_card",
     DAFTRA_TIMEOUT=5,
 )
 
@@ -182,6 +182,20 @@ class DaftraFlowTests(TestCase):
             confirmations = [m for m in mail.outbox if "confirmed" in m.subject]
             self.assertTrue(confirmations, "confirmation email should have been sent")
             self.assertIn("/invoices/view/9001", confirmations[0].alternatives[0][0])
+
+    @daftra_env
+    def test_configured_payment_method_reaches_both_payments(self):
+        fake = FakeDaftra()
+        with patch("products.daftra.requests.request", side_effect=fake):
+            booking = self.make_booking()
+            self.pay_deposit(booking)
+            self.pay_balance(booking)
+
+        opening = fake.posted_to("invoices.json")[0][2]["Payment"][0]
+        self.assertEqual(opening["payment_method"], "credit_card")
+
+        balance = fake.posted_to("invoice_payments.json")[0][2]["InvoicePayment"]
+        self.assertEqual(balance["payment_method"], "credit_card")
 
     @daftra_env
     def test_guest_booking_gets_a_daftra_client_from_its_own_details(self):

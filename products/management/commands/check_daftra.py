@@ -52,6 +52,48 @@ class Command(BaseCommand):
             )
             return
 
+        self.stdout.write(
+            "\nPayment methods active on this account "
+            "(DAFTRA_PAYMENT_METHOD must be one of these)"
+        )
+        configured = getattr(settings, "DAFTRA_PAYMENT_METHOD", "")
+        methods = []
+        # Daftra validates payment_method against the methods enabled on the
+        # account, and the slug differs between accounts, so list rather than
+        # assume one is right.
+        for path in (
+            "payment_methods.json",
+            "settings/payment_methods.json",
+            "payment_options.json",
+        ):
+            try:
+                data = client._call("GET", path)
+            except DaftraError:
+                continue
+            rows = data if isinstance(data, list) else (data.get("data") or [])
+            for row in rows:
+                method = row.get("PaymentMethod") or row.get("PaymentOption") or row
+                slug = method.get("code") or method.get("slug") or method.get("id")
+                label = method.get("name") or method.get("title") or ""
+                marker = ok("  <- configured") if str(slug) == str(configured) else ""
+                self.stdout.write(f"  {slug}  {label}{marker}")
+                methods.append(str(slug))
+            if methods:
+                break
+
+        if not methods:
+            self.stdout.write(
+                warn(
+                    f"  Could not list them. DAFTRA_PAYMENT_METHOD is '{configured}';\n"
+                    "  if a payment is rejected as an invalid method, copy the exact\n"
+                    "  value from Daftra > Settings > Payment Methods."
+                )
+            )
+        elif str(configured) not in methods:
+            self.stdout.write(
+                bad(f"  '{configured}' is NOT one of the above - payments will be rejected.")
+            )
+
         self.stdout.write("\nInvoice layouts (use one of these ids for DAFTRA_INVOICE_LAYOUT_ID)")
         found = False
         # Path differs between Daftra versions; try the likely ones rather than

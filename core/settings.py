@@ -422,7 +422,11 @@ EMAIL_HOST_PASSWORD = "jfcxprwtjykdexfm"
 #   DAFTRA_API_KEY            API key from Daftra > Settings > API
 #   DAFTRA_INVOICE_LAYOUT_ID  id of the invoice template to render with
 #   DAFTRA_STORE_ID           store the invoice belongs to (default 0)
-#   DAFTRA_PAYMENT_METHOD     payment method slug recorded against payments
+#   DAFTRA_PAYMENT_METHOD     payment method recorded against payments. Must be
+#                             one of the methods ACTIVE in your Daftra account,
+#                             so confirm it with `manage.py check_daftra`.
+#                             Defaults to credit_card: takings arrive via
+#                             HyperPay, which is a card gateway.
 #
 # With base url or api key unset the integration stays dormant: bookings and
 # payments work exactly as before and simply carry no invoice.
@@ -430,7 +434,7 @@ DAFTRA_BASE_URL = (os.getenv("DAFTRA_BASE_URL") or "").rstrip("/")
 DAFTRA_API_KEY = os.getenv("DAFTRA_API_KEY") or ""
 DAFTRA_INVOICE_LAYOUT_ID = os.getenv("DAFTRA_INVOICE_LAYOUT_ID") or None
 DAFTRA_STORE_ID = os.getenv("DAFTRA_STORE_ID", "0")
-DAFTRA_PAYMENT_METHOD = os.getenv("DAFTRA_PAYMENT_METHOD", "cash")
+DAFTRA_PAYMENT_METHOD = os.getenv("DAFTRA_PAYMENT_METHOD", "credit_card")
 DAFTRA_TIMEOUT = int(os.getenv("DAFTRA_TIMEOUT", "15"))
 DAFTRA_ENABLED = bool(DAFTRA_BASE_URL and DAFTRA_API_KEY)
 
