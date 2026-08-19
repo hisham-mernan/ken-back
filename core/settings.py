@@ -420,7 +420,13 @@ EMAIL_HOST_PASSWORD = "jfcxprwtjykdexfm"
 #
 #   DAFTRA_BASE_URL           https://<your-subdomain>.daftra.com
 #   DAFTRA_API_KEY            API key from Daftra > Settings > API
-#   DAFTRA_INVOICE_LAYOUT_ID  id of the invoice template to render with
+#   DAFTRA_INVOICE_LAYOUT_ID  optional. Only decides how Daftra renders its own
+#                             copy, which no customer sees -- ours is rendered
+#                             by products/invoice_pdf.py. Verified against the
+#                             API: omitting it creates the invoice with layout
+#                             0 rather than failing, and the ZATCA QR is
+#                             identical either way. Worth setting so the copy
+#                             your accountant opens in Daftra looks right.
 #   DAFTRA_STORE_ID           store the invoice belongs to (default 0)
 #   DAFTRA_PAYMENT_METHOD     payment method recorded against payments. Must be
 #                             one of the methods ACTIVE in your Daftra account,
