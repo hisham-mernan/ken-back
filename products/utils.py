@@ -552,6 +552,7 @@ def send_booking_confirmation(booking):
             "hut": booking.hut,
             "is_guest": booking.is_guest_booking,
             "booking_link": booking_link,
+            "invoice_url": booking.invoice_url,
             # Referenced by the template as an inline attachment, so the code
             # still shows when a client blocks remote images.
             "qr_cid": "booking_qr",
@@ -727,6 +728,7 @@ def send_deposit_confirmation(booking):
                 "payment_link": booking_payment_link(booking),
                 "amount_paid": booking.paid,
                 "amount_due": booking.not_paid,
+                "invoice_url": booking.invoice_url,
             },
         )
         message = EmailMultiAlternatives(

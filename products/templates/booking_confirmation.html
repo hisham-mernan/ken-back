@@ -58,6 +58,15 @@
                 </table>
 
                 <div style="text-align:center; padding:16px; border:1px solid #dee2e6; border-radius:8px; margin-bottom:24px;">
+
+            {% if invoice_url %}
+            <p style="text-align:center; margin:0 0 24px;">
+              <a href="{{ invoice_url }}" style="display:inline-block; background-color:#ffffff; color:#0A1F1A; text-decoration:none; padding:12px 26px; border:1px solid #0A1F1A; border-radius:6px; font-size:15px;">
+                View your paid invoice
+              </a>
+            </p>
+            {% endif %}
+
                   <p style="margin:0 0 12px; font-weight:bold;">Your entry QR code</p>
                   <img src="cid:{{ qr_cid }}" alt="Booking QR code" width="200" height="200" style="display:block; margin:0 auto;" />
                   <p style="margin:12px 0 0; font-size:12px; color:#666;">Booking #{{ booking.id }}</p>

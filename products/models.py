@@ -381,6 +381,10 @@ class SpecialItemTicket(models.Model):
 # models.py
 class DaftraInvoice(models.Model):
     booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='daftra_invoice')
+    # The id Daftra's API addresses this invoice by. Distinct from the number
+    # printed on the document -- using the printed number as an id made every
+    # follow-up call 404, so the balance payment never reached the invoice.
+    daftra_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     invoice_number = models.CharField(max_length=100)
     invoice_url = models.URLField(blank=True, null=True)
     pdf_url = models.URLField(blank=True, null=True)

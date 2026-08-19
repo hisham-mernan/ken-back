@@ -1262,21 +1262,10 @@ class SendBookingToDarevueView(APIView):
 
 
 
-# views.py
-from .models import DaftraInvoice
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-@api_view(['GET'])
-def get_invoice_pdf(request, booking_id):
-    try:
-        invoice = DaftraInvoice.objects.get(booking_id=booking_id)
-        return Response({
-            'pdf_url': invoice.pdf_url,
-            'invoice_url': invoice.invoice_url
-        })
-    except DaftraInvoice.DoesNotExist:
-        return Response({'error': 'Invoice not found'}, status=404)
+# The invoice link is exposed through the booking serializers, which are
+# already scoped to the owner or the guest access token. A standalone
+# by-booking-id endpoint would hand any invoice to anyone who could guess a
+# number, so there deliberately isn't one.
     
     
     

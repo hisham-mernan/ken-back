@@ -414,8 +414,25 @@ EMAIL_HOST_PASSWORD = "jfcxprwtjykdexfm"
 
 
 
-DAFTRA_API_KEY = 'b376d2303a2d26546d08b33953f898f8527f713e' 
-DAFTRA_BASE_URL = 'https://bestoffer.daftra.com'
+# Daftra invoicing. Credentials come from the environment only -- the API key
+# used to be hardcoded here and is therefore in the git history, so it must be
+# rotated in Daftra rather than reused.
+#
+#   DAFTRA_BASE_URL           https://<your-subdomain>.daftra.com
+#   DAFTRA_API_KEY            API key from Daftra > Settings > API
+#   DAFTRA_INVOICE_LAYOUT_ID  id of the invoice template to render with
+#   DAFTRA_STORE_ID           store the invoice belongs to (default 0)
+#   DAFTRA_PAYMENT_METHOD     payment method slug recorded against payments
+#
+# With base url or api key unset the integration stays dormant: bookings and
+# payments work exactly as before and simply carry no invoice.
+DAFTRA_BASE_URL = (os.getenv("DAFTRA_BASE_URL") or "").rstrip("/")
+DAFTRA_API_KEY = os.getenv("DAFTRA_API_KEY") or ""
+DAFTRA_INVOICE_LAYOUT_ID = os.getenv("DAFTRA_INVOICE_LAYOUT_ID") or None
+DAFTRA_STORE_ID = os.getenv("DAFTRA_STORE_ID", "0")
+DAFTRA_PAYMENT_METHOD = os.getenv("DAFTRA_PAYMENT_METHOD", "cash")
+DAFTRA_TIMEOUT = int(os.getenv("DAFTRA_TIMEOUT", "15"))
+DAFTRA_ENABLED = bool(DAFTRA_BASE_URL and DAFTRA_API_KEY)
 
 # HyperPay/OPPWA Payment Gateway Settings
 # Production credentials (default)

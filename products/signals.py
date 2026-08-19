@@ -354,6 +354,13 @@ def mark_related_as_paid(sender, instance, **kwargs):
                 "Failed to send new order notification email: %s", e
             )
 
+        # Invoice first, so the confirmation email can carry a link to it.
+        # The balance payment is appended to the invoice raised at deposit
+        # time, which is what flips it from 50% paid to fully paid.
+        from .daftra import sync_booking_invoice
+        just_paid = (instance.total_price or Decimal("0.00")) - (old.paid or Decimal("0.00"))
+        sync_booking_invoice(instance, amount=just_paid)
+
         # Confirmation to whoever booked -- guest or account holder alike.
         # send_booking_confirmation swallows its own errors so a mail problem
         # cannot disturb a payment that has already gone through.
@@ -1491,5 +1498,11 @@ def send_deposit_email(sender, instance, created, **kwargs):
     if not getattr(instance, "_deposit_just_taken", False):
         return
     instance._deposit_just_taken = False
+
+    # Raise the invoice before the email so it can link to it. This is the
+    # only invoice the booking gets; the balance payment is added to it later.
+    from .daftra import sync_booking_invoice
+    sync_booking_invoice(instance, amount=instance.paid)
+
     from .utils import send_deposit_confirmation
     send_deposit_confirmation(instance)
