@@ -5,6 +5,7 @@ from .models import *
 from .scheduler import  *
 from django.db.models.signals import pre_save
 from django.core.exceptions import ValidationError
+from .pricing import price_for_booking_date
 
 
 @receiver([post_save, post_delete], sender=Hut)
@@ -890,23 +891,11 @@ def calculate_total_price_on_booking_date_create(sender, instance, created, **kw
         return  # only run on creation
 
     booking_date = instance
-    hut = booking_date.booking.hut  # assumes Booking has a ForeignKey to Hut
 
-    # Get the price range for the hut overlapping the booking date
-    hut_date = AvailableDateRanges.objects.filter(
-        huts=hut,
-        date_from__lte=booking_date.date_to,
-        date_to__gte=booking_date.date_from
-    ).first()
-
-    nights = (booking_date.date_to - booking_date.date_from).days
-    nights = nights if nights > 0 else 1
-
-    price_per_night = hut_date.price if hut_date and hut_date.price else Decimal("0.00")
-    total_price = price_per_night * nights
-    print(total_price,"in signals")
-
-    booking_date.total_price = total_price
+    # The stay total at the hut's weekday/weekend rates. This is already the
+    # whole-range total, not a per-night figure -- see the note on
+    # UpComingBookingSerializer.get_booking_price before multiplying it out.
+    booking_date.total_price = price_for_booking_date(booking_date)
     booking_date.save(update_fields=["total_price"])
 
 

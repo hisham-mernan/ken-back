@@ -7,6 +7,7 @@ from .utils import *
 from datetime import date
 from django.utils import timezone
 from django.db import transaction
+from .pricing import lowest_rate, price_for_stay, quote
 
 class AvailableDateEventSerializer(serializers.ModelSerializer):
     class Meta:
@@ -218,17 +219,39 @@ class HutSerializer(serializers.ModelSerializer):
         return HutActivitySerializer(activities, many=True, context=self.context).data
 
     def get_lowest_price(self, obj):
-        dates = self.get_available_dates(obj)
-        if not dates:
-            return None
-        prices = [d['price'] for d in dates if 'price' in d]
-        return min(prices) if prices else None
+        # The "from" figure. Rates live on the hut now, not on the date
+        # ranges, which only say which dates are bookable.
+        return lowest_rate(obj)
 
     def get_total_reviews(self, obj):
         if hasattr(obj, 'hutrating_count'):
             return obj.hutrating_count
         return obj.hutrating_set.count()
 
+
+
+class HutRatesSerializer(serializers.ModelSerializer):
+    """The hut's two nightly rates, for the dashboard's pricing step.
+
+    Deliberately narrow: it is reached from the available-dates endpoint,
+    which should not become a way to edit the rest of the hut.
+    """
+
+    class Meta:
+        model = Hut
+        fields = ['weekday_price', 'weekend_price']
+
+    def validate_weekday_price(self, value):
+        return self._non_negative(value)
+
+    def validate_weekend_price(self, value):
+        return self._non_negative(value)
+
+    @staticmethod
+    def _non_negative(value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("A nightly rate cannot be negative.")
+        return value
 
 
 class HutAdminDetailsDashboardSerializer(serializers.ModelSerializer):
@@ -360,14 +383,14 @@ class HutListHomeSerializer(serializers.ModelSerializer):
             'max_persons_num',
             'is_active',
             'lowest_price',
+            'weekday_price',
+            'weekend_price',
             
         ]
     def get_lowest_price(self, obj):
-        dates = get_hut_available_dates(obj)
-        if not dates:
-            return None
-        prices = [d['price'] for d in dates if 'price' in d]
-        return min(prices) if prices else None
+        # The "from" figure. Rates live on the hut now, not on the date
+        # ranges, which only say which dates are bookable.
+        return lowest_rate(obj)
     
     def get_total_reviews(self, obj):
         if hasattr(obj, 'hutrating_count'):
@@ -429,14 +452,14 @@ class HutListSerializer(serializers.ModelSerializer):
             'max_kids_num',
             'max_persons_num',
             "lowest_price",
+            'weekday_price',
+            'weekend_price',
             
         ]
     def get_lowest_price(self, obj):
-        dates = get_hut_available_dates(obj)
-        if not dates:
-            return None
-        prices = [d['price'] for d in dates if 'price' in d]
-        return min(prices) if prices else None
+        # The "from" figure. Rates live on the hut now, not on the date
+        # ranges, which only say which dates are bookable.
+        return lowest_rate(obj)
     
     def get_total_reviews(self, obj):
         if hasattr(obj, 'hutrating_count'):
@@ -1195,13 +1218,12 @@ class UpComingBookingSerializer(serializers.ModelSerializer):
      total_extension_price = Decimal("0.00")
      extra_dates = obj.dates.filter(is_extra=True, is_paid=True)
      for d in extra_dates:
-        if d.date_from and d.date_to and d.total_price:
-            # Calculate number of nights (e.g. 26 - 29 → 3 nights)
-            nights = (d.date_to - d.date_from).days
-            if nights ==0:
-             nights=1
-            # If user paid per night, total_price is per night:
-            total_extension_price += Decimal(d.total_price) * nights
+        if d.total_price:
+            # BookingDate.total_price is the whole stay, not a nightly rate
+            # (see calculate_total_price_on_booking_date_create). This used
+            # to multiply it by the night count again, billing a 3-night
+            # extension at three times its price.
+            total_extension_price += Decimal(d.total_price)
 
     
      extra_services = obj.services.filter(is_extra=True, is_paid=True)
@@ -1214,15 +1236,9 @@ class UpComingBookingSerializer(serializers.ModelSerializer):
      total_booking_price = Decimal("0.00")
      dates = obj.dates.filter(is_extra=False, is_paid=True)
      for d in dates:
-        if d.date_from and d.date_to and d.total_price:
-            # Calculate number of nights (e.g. 26 - 29 → 3 nights)
-            nights = (d.date_to - d.date_from).days
-          
-            if nights ==0:
-             nights=1
-            
-            # If user paid per night, total_price is per night:
-            total_booking_price += Decimal(d.total_price) * nights
+        if d.total_price:
+            # Already the whole-stay total -- do not multiply by nights.
+            total_booking_price += Decimal(d.total_price)
 
     
      services = obj.services.filter(is_extra=True, is_paid=True)
@@ -1996,40 +2012,15 @@ class BookingSerializer(serializers.ModelSerializer):
             total_price += subtotal
             print(total_price,'kenitem')
 
-        # Hut price from range
-        date_from = date_data['date_from']
-        date_to = date_data['date_to']
-        current_date = date_from
-        hut_price=0
+        # Hut nights, at the hut's own weekday/weekend rates. This used to
+        # look for one AvailableDateRanges row covering the whole stay and
+        # charge its price, which silently billed 0 for any stay spanning two
+        # ranges; those rows now only say which dates are bookable.
         if date_data:
-             date_from = date_data['date_from']
-             date_to = date_data['date_to']
-             nights = (date_to - date_from).days
-             if nights == 0:
-              nights = 1  # minimum 1 night if same day
+            total_price += price_for_stay(
+                hut, date_data['date_from'], date_data['date_to']
+            )
 
-   
-             hut_range = AvailableDateRanges.objects.filter(huts=hut,date_from__lte=date_from,date_to__gte=date_to).first()
-
-             if hut_range:
-                nightly_price = hut_range.price or 0
-                total_price += nightly_price * nights
-                print(total_price, "total price by night")
-# Loop until the day before date_to
-        # while current_date <= date_to:
-        #   hut_range = AvailableDateRanges.objects.filter(huts=hut,
-        #        date_from__lte=current_date,
-        #          date_to__gte=current_date ).first()
-        #   print(hut_range,'hutrangeff')
-          
-        #   if hut_range:
-        #    daily_price = hut_range.price or 0
-
-        #    total_price += daily_price
-        #    hut_price+=daily_price
-        #   current_date += timedelta(days=1)
-        #
-        # print(hut_price,"hutprice")
         if promo:
            discount = (Decimal(promo.percentage) / Decimal("100")) * total_price
            total_price -= discount
@@ -2130,18 +2121,12 @@ class BookingSerializer(serializers.ModelSerializer):
         total_price += subtotal
         print(total_price,"iemens updaye")
 
-     # Hut price (once, not inside the loop)
+     # Hut nights (once, not inside the loop), at the hut's weekday/weekend
+     # rates -- see products/pricing.py for the rule.
      if date_data:
-         date_from = date_data['date_from']
-         date_to = date_data['date_to']
-         nights = (date_to - date_from).days
-         if nights == 0:
-             nights = 1  # minimum 1 night if same day
-         hut_range = AvailableDateRanges.objects.filter(huts=hut, date_from__lte=date_from, date_to__gte=date_to).first()
-         if hut_range:
-             nightly_price = hut_range.price or 0
-             total_price += nightly_price * nights
-             print(total_price, "total price by night")
+         total_price += price_for_stay(
+             hut, date_data['date_from'], date_data['date_to']
+         )
 
      if instance.promocode:
          discount = (Decimal(instance.promocode.percentage) / Decimal("100")) * total_price
@@ -2353,30 +2338,36 @@ class BookingDetailsAdminSerializer(serializers.ModelSerializer):
                     "is_paid": item.is_paid,
                 })
 
-            # Dates / Huts
+            # Dates / Huts. Weekday and weekend nights are billed as separate
+            # lines so quantity x price equals the line total exactly -- the
+            # Daftra builder reconciles those products against what was
+            # charged, and a blended per-night rate would not divide evenly.
+            # A 3+ night stay is all one rate, so it yields a single line.
             for booking_date in obj.dates.filter(is_extra=is_extra):
-                hut_date = AvailableDateRanges.objects.filter(
-                    huts=obj.hut,
-                    date_from__lte=booking_date.date_to,
-                    date_to__gte=booking_date.date_from
-                ).first()
-                # print(hut_date.price,'dattte hutt')
-                nights = (booking_date.date_to - booking_date.date_from).days
-                nights = nights if nights > 0 else 1
-                price = hut_date.price or Decimal("0.00") if hut_date else Decimal("0.00")
-                per_night = price / nights if nights else price
-                items.append({
-                    "id": booking_date.id,
-                    "title": obj.hut.title if obj.hut else "",
-                    "title_ar": obj.hut.title_ar if obj.hut else "",
-                    "type": "hut",
-                    "quantity": nights,
-                    "price": hut_date.price if hut_date and hut_date.price is not None else Decimal("0.00"),
-                    "total_price": price*nights,
-                    "is_paid": booking_date.is_paid,
-                    "date_from": booking_date.date_from,
-                    "date_to": booking_date.date_to,
-                })
+                q = quote(obj.hut, booking_date.date_from, booking_date.date_to)
+                night_lines = [
+                    ("Weekday nights", "ليالي وسط الأسبوع",
+                     q["weekday_nights"], q["weekday_rate"]),
+                    ("Weekend nights", "ليالي نهاية الأسبوع",
+                     q["weekend_nights"], q["weekend_rate"]),
+                ]
+                for label, label_ar, night_count, rate in night_lines:
+                    if not night_count:
+                        continue
+                    hut_title = obj.hut.title if obj.hut else ""
+                    hut_title_ar = (obj.hut.title_ar if obj.hut else "") or hut_title
+                    items.append({
+                        "id": booking_date.id,
+                        "title": f"{hut_title} - {label}".strip(" -"),
+                        "title_ar": f"{hut_title_ar} - {label_ar}".strip(" -"),
+                        "type": "hut",
+                        "quantity": night_count,
+                        "price": rate,
+                        "total_price": rate * night_count,
+                        "is_paid": booking_date.is_paid,
+                        "date_from": booking_date.date_from,
+                        "date_to": booking_date.date_to,
+                    })
 
         return BookingOrderItemSerializer(items, many=True).data
 

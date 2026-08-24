@@ -101,7 +101,12 @@ class Hut(models.Model):
     title_ar = models.CharField(max_length=255,null=True,blank=True)
     description = models.TextField()
     description_ar = models.TextField(null=True,blank=True)
-    # price = models.DecimalField(max_digits=10, decimal_places=2)
+    # Nightly rates. A stay is charged per night at the rate for the day that
+    # night starts on (Friday and Saturday nights are weekend nights), except
+    # that a stay of 3+ nights takes the weekday rate throughout. All of that
+    # lives in products/pricing.py -- do not reimplement it at the call site.
+    weekday_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    weekend_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     size = models.CharField(max_length=10, choices=(("small", "small"),('meduim','meduim'),('large','large')))
     rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     # includes = models.ManyToManyField(Includes, related_name='huts',null=True,blank=True)

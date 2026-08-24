@@ -1775,9 +1775,30 @@ class HutDatesPromoUpdateView(generics.GenericAPIView):
             return Response({"detail": "Hut not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # ========================
+        # 0️⃣ Nightly rates
+        # ========================
+        # These are the hut's price. They used to be collected by the
+        # dashboard and dropped on the floor -- there was no column to put
+        # them in, so every hut showed whatever price the seed data had left
+        # on its date ranges.
+        rate_fields = {}
+        for field in ("weekday_price", "weekend_price"):
+            if field in request.data:
+                rate_fields[field] = request.data.get(field)
+        if rate_fields:
+            rate_serializer = HutRatesSerializer(hut, data=rate_fields, partial=True)
+            rate_serializer.is_valid(raise_exception=True)
+            hut = rate_serializer.save()
+
+        # ========================
         # 1️⃣ Handle Available Dates
         # ========================
-        available_dates_data = request.data.get("available_dates", [])
+        # Ranges say *when* the hut can be booked; they no longer carry a
+        # price, so anything sent in a `price` key here is ignored.
+        available_dates_data = [
+            {k: v for k, v in item.items() if k != "price"}
+            for item in request.data.get("available_dates", [])
+        ]
         AvailableDateRanges.objects.filter(huts=hut).delete()
 
         date_serializer = AvailableDateRnageSerializer(data=available_dates_data, many=True)
@@ -1806,6 +1827,8 @@ class HutDatesPromoUpdateView(generics.GenericAPIView):
         # ✅ Return Response
         # ========================
         return Response({
+            "weekday_price": hut.weekday_price,
+            "weekend_price": hut.weekend_price,
             "available_dates": AvailableDateRnageSerializer(created_dates, many=True).data,
             "promocodes": PromoCodeSerializer(created_promos, many=True).data
         }, status=status.HTTP_201_CREATED)
