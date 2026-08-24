@@ -182,7 +182,7 @@ def mark_related_as_paid(sender, instance, **kwargs):
         
         schedule_review_email(instance)
 
-        # Notify info@kenluxuryreef.com when a new order is paid
+        # Notify kenluxuryreef@gmail.com when a new order is paid
         try:
             from django.template.loader import render_to_string
             from accounts.utils import send_email
@@ -194,7 +194,7 @@ def mark_related_as_paid(sender, instance, **kwargs):
                 "new_order_notification.html",
                 {"booking": instance, "main_date": main_date_str},
             )
-            send_email("info@kenluxuryreef.com", "KEN - New Order Paid", html)
+            send_email("kenluxuryreef@gmail.com", "KEN - New Order Paid", html)
         except Exception as e:
             import logging
             logging.getLogger(__name__).exception(

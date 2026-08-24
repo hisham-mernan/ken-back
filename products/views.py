@@ -491,7 +491,9 @@ class HutRatingListAPIView(generics.ListAPIView):
         qs = super().get_queryset()
         if hut_id:
             qs = qs.filter(hut_id=hut_id)
-        return qs[:3]  
+        # Was capped at 3, which silently hid every testimonial past the
+        # third regardless of how many were marked is_testmonail=True.
+        return qs[:12]
 
     def list(self, request, *args, **kwargs):
         hut_id = request.query_params.get('hut', 'all')
