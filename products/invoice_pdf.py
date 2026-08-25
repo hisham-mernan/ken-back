@@ -108,6 +108,28 @@ def _qr_image(data):
     return ImageReader(buffer)
 
 
+# Arabic, Arabic Supplement, and the presentation forms.
+_ARABIC = ((0x0600, 0x06FF), (0x0750, 0x077F), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
+
+
+def _latin(value):
+    """The text if this document can actually set it, otherwise blank.
+
+    Jost carries no Arabic glyphs and ReportLab does no Arabic shaping or
+    bidi, so Arabic came out as a row of empty boxes across the item table.
+    Line items already carry an English name, so text we cannot typeset is
+    dropped rather than printed as tofu on a customer's invoice.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    for ch in text:
+        code = ord(ch)
+        if any(low <= code <= high for low, high in _ARABIC):
+            return ""
+    return text
+
+
 def _money(value):
     return f"{Decimal(str(value or 0)):.2f}"
 
@@ -186,15 +208,20 @@ def render_invoice_pdf(booking):
     # ------------------------------------------------------- billed to / meta
     y = PAGE_H - 168
     _text(pdf, MARGIN, y, "Billed to:", font=BOLD, size=9.5)
+    # An Arabic name would set as empty boxes, so fall back to the address we
+    # can render rather than print tofu at the top of the invoice -- and then
+    # do not repeat that address on its own line below.
+    billed_to = _latin(booking.contact_name) or booking.contact_email or "-"
+    detail_lines = [billed_to]
+    if booking.contact_phone:
+        detail_lines.append(booking.contact_phone)
+    if booking.contact_email and booking.contact_email != billed_to:
+        detail_lines.append(booking.contact_email)
+
     line = y - 18
-    for value in (
-        booking.contact_name or booking.contact_email or "-",
-        booking.contact_phone,
-        booking.contact_email,
-    ):
-        if value:
-            _text(pdf, MARGIN, line, value, size=9)
-            line -= 14
+    for value in detail_lines:
+        _text(pdf, MARGIN, line, value, size=9)
+        line -= 14
 
     _text(pdf, RIGHT, y, f"Invoice No. {number}", size=9, right=True)
     _text(pdf, RIGHT, y - 18, issued.strftime("%d %B %Y"), size=9,
@@ -221,8 +248,9 @@ def render_invoice_pdf(booking):
             y = _draw_table_header(pdf, PAGE_H - 168)
 
         line_total = Decimal(str(item["unit_price"])) * Decimal(str(item["quantity"]))
-        _text(pdf, MARGIN, y, str(item["item"])[:46], size=9)
-        description = str(item.get("description") or "").strip()
+        name = _latin(item["item"]) or f"Booking #{booking.pk}"
+        _text(pdf, MARGIN, y, name[:46], size=9)
+        description = _latin(item.get("description"))
         if description:
             _text(pdf, MARGIN, y - 12, description[:56], size=7.5, colour=MUTED)
         _text(pdf, COL_QTY, y, item["quantity"], size=9)
