@@ -1081,13 +1081,17 @@ class HutDetailsInBookingSerializer(serializers.ModelSerializer):
 
 
 class HutDetailsInBookingWithDateSerializer(serializers.ModelSerializer):
-   
+
     available_dates = serializers.SerializerMethodField()
-   
+
 
     class Meta:
         model = Hut
-        fields = ['id','max_persons_num','max_kids_num','available_dates']
+        # The two rates are what the checkout page prices the stay from. Without
+        # them it read both as 0 and showed the guest a 0 SAR total on the last
+        # screen before paying, while the server still charged the real figure.
+        fields = ['id','max_persons_num','max_kids_num','available_dates',
+                  'weekday_price','weekend_price']
     # def get_available_dates(self, obj):
     #     today = date.today()
     #     valid_dates = obj.available_dates.filter(date_to__gte=today,date_from__gte=today)
@@ -1798,6 +1802,11 @@ class BookingSerializer(serializers.ModelSerializer):
     dates = serializers.SerializerMethodField(read_only=True) 
     promocode = serializers.CharField(write_only=True, required=False, allow_blank=True)
     promocode_obj = PromoCodeSerializer(read_only=True, source='promocode')
+    # Just the percentage, never the code itself. The checkout page has to show
+    # the guest why their total dropped, but BookingDetailView strips both
+    # promocode fields so a code is never handed back to whoever can read the
+    # booking -- which also left the page unable to render the discount at all.
+    discount_percentage = serializers.SerializerMethodField(read_only=True)
     # Supplied instead of `user` when someone books without an account. Same
     # details registration asks for. Write-only: the access token returned by
     # the create view is what a guest uses to come back to the booking, so
@@ -1813,11 +1822,16 @@ class BookingSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'hut', 'persons_max_num', 'kids_max_num','status','created_at','is_valid',"dates",
             'date', 'events', 'services', 'special_items','hut_details','total_price','paid','not_paid','promocode','promocode_obj',
+            'discount_percentage',
             'guest_name', 'guest_email', 'guest_phone', 'guest_id_num', 'is_guest_booking',
         ]
 
     # Required from a guest, since there is no account to read them from.
     GUEST_REQUIRED_FIELDS = ("guest_name", "guest_email", "guest_phone", "guest_id_num")
+
+    def get_discount_percentage(self, obj):
+        promo = getattr(obj, 'promocode', None)
+        return float(promo.percentage) if promo else 0
 
     def validate(self, data):
         # Guest details are collected on the checkout page, not when the draft
