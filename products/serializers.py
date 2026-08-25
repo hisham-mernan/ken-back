@@ -1857,13 +1857,17 @@ class BookingSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(missing)
 
         hut = data.get('hut')
-        promocode_value = data.get('promocode')
+        promocode_value = (data.get('promocode') or "").strip()
 
         # Promo code validation
         if promocode_value:
-            try:
-                promo = PromoCode.objects.get(code=promocode_value)
-            except PromoCode.DoesNotExist:
+            # Guests copy these off a poster or a WhatsApp message, so match
+            # without regard to case or surrounding whitespace. Matching
+            # exactly meant a code advertised as "Hat26" was rejected as
+            # invalid the moment someone typed it as "HAT26", which is how
+            # most people type a code.
+            promo = PromoCode.objects.filter(code__iexact=promocode_value).first()
+            if promo is None:
                 raise serializers.ValidationError({"promocode": "Invalid promo code."})
 
             if not promo.is_active:
