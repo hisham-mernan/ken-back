@@ -140,7 +140,6 @@ class PromoCodeSerializer(serializers.ModelSerializer):
 
 class HutSerializer(serializers.ModelSerializer):
     location = LocationSerializer()
-    promocode = PromoCodeSerializer(many=True, read_only=True)
     images = HutImageSerializer(many=True, read_only=True)
     main_image = serializers.SerializerMethodField()
     available_dates = serializers.SerializerMethodField()
@@ -152,7 +151,13 @@ class HutSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hut
-        fields = '__all__'
+        # This view is public, so the hut must not carry its promo codes: it
+        # was handing every anonymous caller a working discount and its
+        # percentage, which defeats the point of issuing a code to selected
+        # guests. The booking form checks one typed code through
+        # PromoCodeValidateView instead, and the dashboard reads its codes
+        # from the admin serializer.
+        exclude = ('promocode',)
 
     def get_main_image(self, obj):
         if not obj.main_image:

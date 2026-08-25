@@ -73,6 +73,10 @@ urlpatterns = [
     path('huts/', HutCreateView.as_view(), name='hut-list-create'),
     path("huts/admin-list/", HutListAdminAPIView.as_view()),
     path("huts/promocodes/<int:hut_id>/", PromoCodeListCreateView.as_view(), name="hut-promocode-list-create"),
+    # Public: the booking form checks a typed code to show the discount before
+    # the guest commits. Must stay above the <int:id> route only in spirit --
+    # "validate" never matches an int, so ordering is not load-bearing here.
+    path("promocodes/validate/", PromoCodeValidateView.as_view(), name="promocode-validate"),
     path("promocodes/<int:id>/", PromoCodeDetailView.as_view(), name="promocode-detail"),
     path('admin/huts/services-activities/<int:hut_id>/', HutServicesActivitiesBulkUpdateAPIView.as_view()),
     path('admin/import-ken-data/', ImportKenDataView.as_view()),

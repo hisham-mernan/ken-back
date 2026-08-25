@@ -2773,6 +2773,39 @@ class PromoCodeListCreateView(generics.ListCreateAPIView):
 
 
 
+class PromoCodeValidateView(APIView):
+    """Check one typed code against one hut, for the booking form's live total.
+
+    Deliberately narrow: it answers only about a code the caller has already
+    entered and never reveals which codes exist. The public hut payload used
+    to include every code with its percentage, so anyone who opened the API
+    had a working discount without being given one.
+
+    Always 200 with a valid flag -- a mistyped code is ordinary form state,
+    not an error worth a failed request. The rules mirror the ones the
+    booking serializer enforces when the discount is actually applied, so the
+    figure previewed here is the figure charged.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        code = (request.data.get("code") or "").strip()
+        hut_id = request.data.get("hut")
+        invalid = Response({"valid": False, "percentage": 0}, status=status.HTTP_200_OK)
+
+        if not code or not hut_id:
+            return invalid
+
+        promo = PromoCode.objects.filter(code__iexact=code, is_active=True).first()
+        # Must also be attached to this hut -- a code for one hut is not a
+        # code for another.
+        if promo is None or not Hut.objects.filter(id=hut_id, promocode=promo).exists():
+            return invalid
+
+        return Response({"valid": True, "percentage": promo.percentage},
+                        status=status.HTTP_200_OK)
+
+
 class PromoCodeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PromoCode.objects.all()
     serializer_class = PromoCodeSerializer
