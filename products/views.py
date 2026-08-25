@@ -2732,6 +2732,10 @@ class BookingMarkPaidView(generics.UpdateAPIView):
 
 class PromoCodeListCreateView(generics.ListCreateAPIView):
     serializer_class = PromoCodeSerializer
+    # Promo codes are money. Without this the view fell back to the project
+    # default of IsAuthenticated, so any registered guest could mint a 100%
+    # code, attach it to a hut and book for nothing.
+    permission_classes = [IsAdmin]
 
     def get_queryset(self):
         hut_id = self.kwargs["hut_id"]
@@ -2743,6 +2747,20 @@ class PromoCodeListCreateView(generics.ListCreateAPIView):
             hut = Hut.objects.get(id=hut_id)
         except Hut.DoesNotExist:
             return Response({"detail": "Hut not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # `code` is unique site-wide but the relation to huts is many-to-many,
+        # so submitting a code that already exists means "this hut takes it
+        # too", not a clash. Previously the unique constraint raised a 400 and
+        # there was no other route to share one code across huts: both hut
+        # serializers declare promocode read-only, so a PATCH looked like it
+        # worked and silently changed nothing.
+        code = (request.data.get("code") or "").strip()
+        existing = PromoCode.objects.filter(code__iexact=code).first() if code else None
+        if existing:
+            hut.promocode.add(existing)
+            # Returned as-is: editing the percentage here would silently
+            # reprice every other hut already carrying this code.
+            return Response(self.get_serializer(existing).data, status=status.HTTP_200_OK)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2759,6 +2777,10 @@ class PromoCodeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PromoCode.objects.all()
     serializer_class = PromoCodeSerializer
     lookup_field = "id"
+    # Same reason as above: this one edits and deletes existing codes, so an
+    # ordinary account could have raised any code to 100%.
+    permission_classes = [IsAdmin]
+
     def update(self, request, *args, **kwargs):
         kwargs['partial'] = True  # ensure partial update
         return super().update(request, *args, **kwargs)
