@@ -652,6 +652,19 @@ def _booking_qr_bytes(booking):
 
 
 
+def phone_tail(value, length=9):
+    """The comparable part of a phone number.
+
+    A guest has no account, so the phone number is the only thread tying two
+    of their bookings together -- and the same line gets typed as
+    +966533850235, 00966533850235, 0533850235 or 533850235. Keeping the last
+    nine digits makes those one customer. Returns "" when there is not enough
+    of a number to be worth matching, so a blank field never groups strangers.
+    """
+    digits = "".join(ch for ch in str(value or "") if ch.isdigit())
+    return digits[-length:] if len(digits) >= length else ""
+
+
 def booking_token_matches(supplied, expected):
     """Compare a caller-supplied booking access token against the stored one.
 

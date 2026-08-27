@@ -854,7 +854,7 @@ class ServiceSerializer(serializers.ModelSerializer):
         
         
 # serializers.py
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.utils import timezone
 from rest_framework import serializers
 from .models import HutRating, Booking
@@ -2229,6 +2229,16 @@ class BookingDetailsAdminSerializer(serializers.ModelSerializer):
     sub_total = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     qr_logs = serializers.SerializerMethodField()
+    # Who booked. `user` is null for a guest, so a desk reading only that saw
+    # "-" where the customer's name should be on every guest booking -- which
+    # is most of them. These read the contact_* properties, which fall back to
+    # the guest fields.
+    customer_name = serializers.CharField(source='contact_name', read_only=True)
+    customer_phone = serializers.CharField(source='contact_phone', read_only=True)
+    customer_email = serializers.CharField(source='contact_email', read_only=True)
+    is_guest_booking = serializers.BooleanField(read_only=True)
+    customer_bookings = serializers.SerializerMethodField()
+    invoice_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -2236,9 +2246,49 @@ class BookingDetailsAdminSerializer(serializers.ModelSerializer):
             'id', 'is_valid', 'user', 'hut_title',
             'total_price', 'sub_total', 'persons_max_num', 'kids_max_num',
             'paid', 'not_paid', 'created_at', 'status',
-            'qr_code_image', 'invoice_url', 'is_scaned',
-            'main_order', 'extra_order', 'date','qr_logs','promocode'
+            'qr_code_image', 'invoice_url', 'invoice_pdf_url', 'is_scaned',
+            'main_order', 'extra_order', 'date','qr_logs','promocode',
+            'customer_name', 'customer_phone', 'customer_email',
+            'is_guest_booking', 'customer_bookings',
         ]
+
+    def get_invoice_pdf_url(self, obj):
+        """Our own rendered invoice, not Daftra's.
+
+        Daftra's link bounces the reader to a Daftra sign-in, which the desk
+        does not have. This path is served by BookingInvoicePdfView, which
+        lets staff through on their session.
+        """
+        path = f"/api/products/bookings/{obj.pk}/invoice.pdf"
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request else path
+
+    def get_customer_bookings(self, obj):
+        """How much of a repeat customer this is.
+
+        An account is counted by account. A guest has no account to count, so
+        they are counted by phone number instead -- that is the only thing
+        that carries across two guest bookings by the same person. Numbers are
+        matched on their last nine digits so +966 5x, 05x and 5x forms of the
+        same line are recognised as one customer.
+        """
+        from .utils import phone_tail
+
+        if obj.user_id:
+            return {
+                "basis": "account",
+                "matched": obj.user.email or obj.user.phone or "",
+                "count": Booking.objects.filter(user_id=obj.user_id).count(),
+            }
+
+        tail = phone_tail(obj.contact_phone)
+        if not tail:
+            return {"basis": "phone", "matched": "", "count": 1}
+
+        count = Booking.objects.filter(
+            Q(guest_phone__endswith=tail) | Q(user__phone__endswith=tail)
+        ).distinct().count()
+        return {"basis": "phone", "matched": obj.contact_phone or "", "count": count}
     def get_qr_logs(self, obj):
         logs = QrLogs.objects.filter(booking=obj).order_by('-created_at')
         return QrLogsSerializer(logs, many=True).data
