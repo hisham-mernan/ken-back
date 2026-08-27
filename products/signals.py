@@ -271,16 +271,12 @@ from django.dispatch import receiver
 
 
 
-def delayed_cancel_check(booking_id):
-    from .models import Booking
-    try:
-        booking = Booking.objects.get(pk=booking_id)
-    except Booking.DoesNotExist:
-        return
-    
-    # Cancel if booking still confirmed but not paid after 30 minutes
-    if booking.status == 'confirmed' :
-        cancel_unpaid_booking(booking)
+# The hold used to be released by threading.Timer started inside this signal.
+# It never worked: the timer was set to 5 minutes while the guest was promised
+# 30, the process is frozen the moment the response is sent so it rarely fired
+# at all, and it cancelled anything still marked "confirmed" without checking
+# whether the money had arrived -- which would have cancelled a paid stay.
+# Expiry now runs from `manage.py expire_unpaid_bookings` on a schedule.
 
 @receiver(pre_save, sender=Booking)
 def mark_related_as_confirmed(sender, instance, **kwargs):
@@ -300,10 +296,10 @@ def mark_related_as_confirmed(sender, instance, **kwargs):
         ServiceTicket.objects.filter(booking=instance).update(is_confirmed=True)
         SpecialItemTicket.objects.filter(booking=instance).update(is_confirmed=True)
 
-        # Start timer inside signal - run delayed cancel check after 30 minutes
-        timer = threading.Timer(5 * 60, delayed_cancel_check, args=[instance.pk])
-        timer.daemon = True  
-        timer.start()
+        # Stamp when the hold started, so expiry has something to measure from.
+        from django.utils import timezone
+
+        instance.confirmed_at = timezone.now()
 
 
 

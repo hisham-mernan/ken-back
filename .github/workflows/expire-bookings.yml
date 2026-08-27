@@ -1,0 +1,65 @@
+name: Release unpaid booking holds
+
+# Confirming a booking tells the guest "pay within 30 minutes or the booking
+# will be cancelled". Keeping that promise needs something that actually runs.
+#
+# It used to be a threading.Timer started inside a Django signal. Vercel
+# freezes the process the moment the response is sent, so the timer almost
+# never fired, and abandoned checkouts held cottages indefinitely -- the same
+# shape of problem as the migrate step in build.sh, which Vercel never runs
+# either. This is the same answer as migrate.yml: do it from here, where
+# something is actually awake.
+#
+# Uses the DATABASE_URL repository secret that migrate.yml already relies on.
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub delays scheduled runs under load, which is
+    # fine: releasing a hold a few minutes late costs nothing, and the
+    # command only ever acts on holds already past the window.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report what would be released, change nothing"
+        type: boolean
+        default: false
+
+# One run at a time: two could try to cancel the same booking at once.
+concurrency:
+  group: expire-unpaid-bookings
+  cancel-in-progress: false
+
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Require the production connection string
+        # Without it settings.py falls back to SQLite and this would sweep an
+        # empty throwaway database and report success. A false green here
+        # means holds are never released and nobody finds out.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is not set - refusing to run."
+            exit 1
+          fi
+          echo "DATABASE_URL is set (${#DATABASE_URL} characters)."
+
+      - name: Release holds that were never paid for
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python manage.py expire_unpaid_bookings \
+            ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}

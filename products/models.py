@@ -281,6 +281,10 @@ class Booking(models.Model):
     # deleted, and a loyalty tier is derived from history that keeps moving.
     discount_percent = models.PositiveSmallIntegerField(default=0)
     discount_source = models.CharField(max_length=32, blank=True, default="")
+    # When the dates were first held. Expiry measures from here, not from
+    # created_at: a booking can sit pending for days before it is confirmed,
+    # and counting from creation would expire it the moment it was made.
+    confirmed_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     @property
     def is_guest_booking(self):
