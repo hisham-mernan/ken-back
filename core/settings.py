@@ -52,7 +52,14 @@ else:
 
 
 # Origins allowed for CSRF validation (scheme + host, e.g. https://dash.example.com)
+# www is the host the site actually serves on -- the apex only redirects to it,
+# so listing the apex alone left the real origin out. api. and dash. are here
+# ready for the day they exist: both are still parked at the registrar, which
+# is why the site calls the backend on its vercel.app host.
 CSRF_TRUSTED_ORIGINS = [
+    "https://www.kenluxuryreef.com",
+    "https://kenluxuryreef.com",
+    "https://api.kenluxuryreef.com",
     "http://dash.kenluxuryreef.com",
     "https://dash.kenluxuryreef.com",
 ]
@@ -386,6 +393,7 @@ AUTH_USER_MODEL = 'accounts.User'
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
+    "https://www.kenluxuryreef.com",
     "https://ken.mernantech.com",
     "https://ken-api.mernantech.com",
     "https://api.kenluxuryreef.com",
