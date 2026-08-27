@@ -2870,11 +2870,12 @@ class LoyaltyStandingView(APIView):
     def get(self, request):
         from . import loyalty
 
-        return Response(
-            loyalty.status(user_id=request.user.id,
-                           phone=getattr(request.user, "phone", None)),
-            status=status.HTTP_200_OK,
-        )
+        standing = loyalty.status(user_id=request.user.id,
+                                  phone=getattr(request.user, "phone", None))
+        # The profile shows this beside the tier. Counted here rather than from
+        # its own endpoint so the page needs one call, not two.
+        standing["reviews"] = HutRating.objects.filter(user=request.user).count()
+        return Response(standing, status=status.HTTP_200_OK)
 
 
 class PromoCodeValidateView(APIView):

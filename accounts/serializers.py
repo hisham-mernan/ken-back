@@ -12,7 +12,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'role', 'full_name', 'gender', 'avatar', 'address', 'birth_date', 'phone', 'id_num', 'is_active']
+        # created_at is what the profile's "member since" line reads; without
+        # it the page printed a hardcoded year at every visitor.
+        fields = ['email', 'password', 'role', 'full_name', 'gender', 'avatar', 'address', 'birth_date', 'phone', 'id_num', 'is_active', 'created_at']
+        read_only_fields = ['created_at']
 
     def validate_email(self, value):
         email = value.lower()
