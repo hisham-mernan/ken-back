@@ -2773,6 +2773,88 @@ class PromoCodeListCreateView(generics.ListCreateAPIView):
 
 
 
+class AdminBookingCalendarView(APIView):
+    """Every stay that holds dates over a window, for the dashboard calendar.
+
+    Returns the stays themselves rather than a day-by-day grid: twelve months
+    across three cottages is over a thousand cells, nearly all of them empty,
+    where the same information is a handful of date ranges. The dashboard
+    expands them.
+
+    Occupied days are date_from to date_to **inclusive**, which is what
+    is_hut_available() blocks. Note that pricing counts nights half-open --
+    checkout day is not charged - so a two-night stay is billed for two nights
+    and blocks three days on this calendar. That is the booking system's
+    existing behaviour, not something introduced here; the calendar shows what
+    is actually unavailable rather than what was charged.
+
+    Only statuses that hold dates appear. A pending booking is somebody
+    part-way through checkout: it blocks nothing, so showing it as booked
+    would have the desk turning away business that was never taken.
+    """
+    permission_classes = [IsAdminOrSupplier]
+
+    def get(self, request):
+        from .models import ACTIVE_BOOKING_STATUSES
+
+        today = date.today()
+        try:
+            start = (datetime.strptime(request.query_params["from"], "%Y-%m-%d").date()
+                     if request.query_params.get("from") else today.replace(day=1))
+        except ValueError:
+            return Response({"detail": "from must be YYYY-MM-DD."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            months = max(1, min(int(request.query_params.get("months", 12)), 24))
+        except ValueError:
+            months = 12
+
+        # Last day of the month `months - 1` after the start month.
+        month_index = start.month - 1 + months
+        end_year = start.year + month_index // 12
+        end_month = month_index % 12 + 1
+        end = date(end_year, end_month, 1) - timedelta(days=1)
+
+        rows = (
+            BookingDate.objects
+            .filter(booking__status__in=ACTIVE_BOOKING_STATUSES,
+                    date_from__lte=end, date_to__gte=start)
+            .select_related("booking", "booking__hut", "booking__user")
+            .order_by("date_from")
+        )
+
+        stays = []
+        for row in rows:
+            booking = row.booking
+            stays.append({
+                "booking": booking.pk,
+                "hut": booking.hut_id,
+                "hut_title": booking.hut.title if booking.hut else "",
+                "date_from": row.date_from,
+                "date_to": row.date_to,
+                "is_extra": row.is_extra,
+                "status": booking.status,
+                "customer": booking.contact_name or "",
+                "phone": booking.contact_phone or "",
+                "email": booking.contact_email or "",
+                "is_guest": booking.is_guest_booking,
+                "adults": booking.persons_max_num,
+                "kids": booking.kids_max_num,
+                "total_price": booking.total_price,
+                "paid": booking.paid,
+                "not_paid": booking.not_paid,
+            })
+
+        cottages = [
+            {"id": h.id, "title": h.title, "title_ar": h.title_ar}
+            for h in Hut.objects.filter(is_active=True).order_by("id")
+        ]
+        return Response({"from": start, "to": end, "months": months,
+                         "cottages": cottages, "stays": stays},
+                        status=status.HTTP_200_OK)
+
+
 class LoyaltyStandingView(APIView):
     """The signed-in customer's own tier, so the booking form can show it.
 

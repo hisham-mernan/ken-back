@@ -105,6 +105,8 @@ urlpatterns = [
     path('analytics/suppliers/<int:supplier_id>/', SupplierAnalyticsView.as_view(), name='supplier-analytics-detail'),
     path('analytics/summary/', AllSuppliersAnalyticsView.as_view(), name='all-suppliers-analytics'),
     path('supplier-analytics/', AdminSupplierAnalyticsAPIView.as_view(), name='supplier-analytics'),
+    # Occupancy across the next months, for the dashboard calendar.
+    path('admin/calendar/', AdminBookingCalendarView.as_view(), name='admin-calendar'),
     path('admin/analytics/', AdminAnalyticsView.as_view(), name='admin-analytics'),
     path('admin/revenue-chart/', YearlyRevenueChartAPIView.as_view(), name='monthly-revenue-chart'),
     path('analytics-recent-order/',   MostRecntOrderAnalyticsListView.as_view(), name='monthly-revenue-chart'),
