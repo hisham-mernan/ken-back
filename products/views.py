@@ -2773,6 +2773,28 @@ class PromoCodeListCreateView(generics.ListCreateAPIView):
 
 
 
+class LoyaltyStandingView(APIView):
+    """The signed-in customer's own tier, so the booking form can show it.
+
+    Only ever the caller's own standing. There is deliberately no lookup by
+    phone number: an endpoint that took one and answered how many stays it had
+    would let anyone check whether a given number has stayed here, which is
+    nobody's business but the guest's. A guest booking still earns and
+    receives its tier discount -- it is applied when the booking is priced,
+    and shown on the confirmation page.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from . import loyalty
+
+        return Response(
+            loyalty.status(user_id=request.user.id,
+                           phone=getattr(request.user, "phone", None)),
+            status=status.HTTP_200_OK,
+        )
+
+
 class PromoCodeValidateView(APIView):
     """Check one typed code against one hut, for the booking form's live total.
 

@@ -77,6 +77,8 @@ urlpatterns = [
     # the guest commits. Must stay above the <int:id> route only in spirit --
     # "validate" never matches an int, so ordering is not load-bearing here.
     path("promocodes/validate/", PromoCodeValidateView.as_view(), name="promocode-validate"),
+    # The signed-in customer's own loyalty tier. Never a lookup by phone.
+    path("loyalty/me/", LoyaltyStandingView.as_view(), name="loyalty-standing"),
     path("promocodes/<int:id>/", PromoCodeDetailView.as_view(), name="promocode-detail"),
     path('admin/huts/services-activities/<int:hut_id>/', HutServicesActivitiesBulkUpdateAPIView.as_view()),
     path('admin/import-ken-data/', ImportKenDataView.as_view()),
