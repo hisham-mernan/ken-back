@@ -1890,11 +1890,33 @@ class BookingSerializer(serializers.ModelSerializer):
         date_to = date_data['date_to']
 
         # 1. Hut capacity check
+        #
+        # max_persons_num is the whole overnight capacity, not an adult
+        # allowance: the owner's specification gives one number of people who
+        # can stay the night per cottage. Children count towards that number
+        # rather than on top of it, so the two fields are checked together --
+        # checked separately, eight adults and four children could book
+        # somewhere that sleeps eight.
         if hut:
-            if data['persons_max_num'] > (hut.max_persons_num or 0):
-                raise serializers.ValidationError("Exceeds maximum persons allowed for this hut.")
-            if data['kids_max_num'] > (hut.max_kids_num or 0):
-                raise serializers.ValidationError("Exceeds maximum kids allowed for this hut.")
+            instance = getattr(self, "instance", None)
+            adults = data.get("persons_max_num")
+            kids = data.get("kids_max_num")
+            if adults is None:
+                adults = getattr(instance, "persons_max_num", 0)
+            if kids is None:
+                kids = getattr(instance, "kids_max_num", 0)
+            adults, kids = adults or 0, kids or 0
+
+            capacity = hut.max_persons_num or 0
+            if adults + kids > capacity:
+                raise serializers.ValidationError(
+                    f"This cottage sleeps {capacity}; {adults + kids} guests were entered."
+                )
+            allowed_kids = hut.max_kids_num or 0
+            if kids > allowed_kids:
+                raise serializers.ValidationError(
+                    f"At most {allowed_kids} of the {capacity} may be children."
+                )
 
         # 2. Hut date range check
         valid, invalid_date = is_hut_available(hut.id, date_from, date_to,self.instance)
