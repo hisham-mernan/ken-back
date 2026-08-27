@@ -210,6 +210,19 @@ else:
         }
     }
 
+# Per-process, in-memory. On Vercel that means per serverless instance: each
+# one keeps its own copy, and clearing a key only ever reaches the instance
+# that ran the code. Cross-instance invalidation is therefore impossible with
+# this backend, whatever signals say -- an edit can sit invisible until every
+# instance's own TTL runs out.
+#
+# So do not cache anything here that an admin can edit and expects to see
+# change. The content lists were, and appeared broken because of it. The
+# product caches in products/signals.py have the same weakness; they survive
+# because a stale hut list is tolerable where stale site copy is not.
+#
+# Fixing it properly means a shared backend -- Redis, or Django's database
+# cache table -- at which point the invalidation signals start working.
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',

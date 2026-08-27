@@ -30,14 +30,11 @@ class FAQListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = FAQSerializer
 
     def list(self, request, *args, **kwargs):
-        cache_key = "content_faq_list"
-        cached = cache.get(cache_key)
-        if cached is not None:
-            res = Response(cached)
-        else:
-            res = super().list(request, *args, **kwargs)
-            cache.set(cache_key, res.data, 1800)
-        res['Cache-Control'] = 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200'
+        # Same reasoning as the about-us list above: a per-process cache
+        # cannot be invalidated across serverless instances, so an edited FAQ
+        # stayed stale for half an hour with no way to tell why.
+        res = super().list(request, *args, **kwargs)
+        res['Cache-Control'] = 'public, max-age=0, s-maxage=60, stale-while-revalidate=300'
         return res
 
 class FAQDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -118,14 +115,18 @@ class AboutUsListCreateAPIView(generics.ListCreateAPIView):
         return AboutUs.objects.order_by('-created_at')[:1]
 
     def list(self, request, *args, **kwargs):
-        cache_key = "content_about_us_list"
-        cached = cache.get(cache_key)
-        if cached is not None:
-            res = Response(cached)
-        else:
-            res = super().list(request, *args, **kwargs)
-            cache.set(cache_key, res.data, 1800)
-        res['Cache-Control'] = 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200'
+        # Deliberately not held in the Django cache. The backend is
+        # LocMemCache, which lives inside one process: on Vercel every
+        # serverless instance keeps its own copy, so clearing it on save only
+        # ever reaches the instance that handled the save while the rest serve
+        # the old content until their own half hour is up. An admin editing
+        # the site saw nothing change and no way to tell whether it had saved.
+        # This is a single row; reading it costs less than the bookkeeping did.
+        #
+        # The CDN header stays, but measured in a minute rather than ten, so
+        # an edit is visible about as fast as the editor can refresh.
+        res = super().list(request, *args, **kwargs)
+        res['Cache-Control'] = 'public, max-age=0, s-maxage=60, stale-while-revalidate=300'
         return res
 
     def create(self, request, *args, **kwargs):
