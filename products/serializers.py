@@ -855,6 +855,7 @@ class ServiceSerializer(serializers.ModelSerializer):
         
 # serializers.py
 from django.db.models import Max, Q
+from . import loyalty
 from django.utils import timezone
 from rest_framework import serializers
 from .models import HutRating, Booking
@@ -1835,6 +1836,9 @@ class BookingSerializer(serializers.ModelSerializer):
     GUEST_REQUIRED_FIELDS = ("guest_name", "guest_email", "guest_phone", "guest_id_num")
 
     def get_discount_percentage(self, obj):
+        """Whatever came off this booking, from a code or from a tier."""
+        if obj.discount_percent:
+            return float(obj.discount_percent)
         promo = getattr(obj, 'promocode', None)
         return float(promo.percentage) if promo else 0
 
@@ -2066,11 +2070,19 @@ class BookingSerializer(serializers.ModelSerializer):
                 hut, date_data['date_from'], date_data['date_to']
             )
 
-        if promo:
-           discount = (Decimal(promo.percentage) / Decimal("100")) * total_price
-           total_price -= discount
-           print(total_price, "after discount")
-        
+        # One discount, whichever is worth more to the customer: the promo code
+        # they entered, or the tier their past stays have earned them. See
+        # products/loyalty.py for why these are not added together.
+        percent, source = loyalty.resolve_discount(
+            promo=promo,
+            user_id=booking.user_id,
+            phone=booking.contact_phone,
+            exclude_pk=booking.pk,
+        )
+        total_price = loyalty.apply_discount(total_price, percent)
+        booking.discount_percent = percent
+        booking.discount_source = source
+
         # total_price+=hut_price
         booking.total_price = total_price
         booking.not_paid = total_price
@@ -2173,10 +2185,15 @@ class BookingSerializer(serializers.ModelSerializer):
              hut, date_data['date_from'], date_data['date_to']
          )
 
-     if instance.promocode:
-         discount = (Decimal(instance.promocode.percentage) / Decimal("100")) * total_price
-         total_price -= discount
-         print(total_price, "after discount")
+     percent, source = loyalty.resolve_discount(
+         promo=instance.promocode,
+         user_id=instance.user_id,
+         phone=instance.contact_phone,
+         exclude_pk=instance.pk,
+     )
+     total_price = loyalty.apply_discount(total_price, percent)
+     instance.discount_percent = percent
+     instance.discount_source = source
 
      instance.total_price = total_price
      instance.not_paid = total_price
@@ -2260,6 +2277,7 @@ class BookingDetailsAdminSerializer(serializers.ModelSerializer):
     customer_email = serializers.CharField(source='contact_email', read_only=True)
     is_guest_booking = serializers.BooleanField(read_only=True)
     customer_bookings = serializers.SerializerMethodField()
+    customer_tier = serializers.SerializerMethodField()
     invoice_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -2271,8 +2289,19 @@ class BookingDetailsAdminSerializer(serializers.ModelSerializer):
             'qr_code_image', 'invoice_url', 'invoice_pdf_url', 'is_scaned',
             'main_order', 'extra_order', 'date','qr_logs','promocode',
             'customer_name', 'customer_phone', 'customer_email',
-            'is_guest_booking', 'customer_bookings',
+            'is_guest_booking', 'customer_bookings', 'customer_tier',
+            'discount_percent', 'discount_source',
         ]
+
+    def get_customer_tier(self, obj):
+        """The standing this customer holds now, and what earns the next one.
+
+        Counted excluding this booking, so the page shows what the customer
+        had behind them when it was priced rather than a number that includes
+        the very stay being looked at.
+        """
+        return loyalty.status(user_id=obj.user_id, phone=obj.contact_phone,
+                              exclude_pk=obj.pk)
 
     def get_invoice_pdf_url(self, obj):
         """Our own rendered invoice, not Daftra's.

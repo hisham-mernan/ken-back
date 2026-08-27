@@ -276,6 +276,12 @@ class Booking(models.Model):
     is_reviewed=models.BooleanField(default=False)
     is_scaned=models.CharField(max_length=255, choices=(("not_started", "not_started"),('scaned','scaned'),('not_valid','not_valid')),default="not_started")
     promocode=models.ForeignKey(PromoCode,on_delete=models.SET_NULL,null=True,blank=True)
+    # What was actually taken off this booking, and on what grounds. Without
+    # it a cheaper booking has no explanation later: the promo code can be
+    # deleted, and a loyalty tier is derived from history that keeps moving.
+    discount_percent = models.PositiveSmallIntegerField(default=0)
+    discount_source = models.CharField(max_length=32, blank=True, default="")
+
     @property
     def is_guest_booking(self):
         return self.user_id is None
