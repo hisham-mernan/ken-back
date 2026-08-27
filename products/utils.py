@@ -553,6 +553,7 @@ def send_booking_confirmation(booking):
         from django.core.mail import EmailMultiAlternatives
         from django.template.loader import render_to_string
         from django.utils.html import strip_tags
+        from .map_preview import email_context as map_email_context
 
         recipient = (booking.contact_email or "").strip()
         if not recipient:
@@ -581,6 +582,8 @@ def send_booking_confirmation(booking):
             # still shows when a client blocks remote images.
             "qr_cid": "booking_qr",
         }
+        # Where to turn up: a map picture and a link to the place.
+        context.update(map_email_context(booking.hut))
         html = render_to_string("booking_confirmation.html", context)
 
         message = EmailMultiAlternatives(
@@ -592,6 +595,7 @@ def send_booking_confirmation(booking):
         message.attach_alternative(html, "text/html")
 
         attach_invoice_pdf(message, booking)
+        attach_map_preview(message, booking)
 
         qr_bytes = _booking_qr_bytes(booking)
         if qr_bytes:
@@ -611,6 +615,26 @@ def send_booking_confirmation(booking):
             "Failed to send booking confirmation for booking %s: %s", booking.pk, exc
         )
         return False
+
+
+def attach_map_preview(message, booking):
+    """Attach the location picture inline, if one has been built for this hut.
+
+    Mirrors the booking QR beside it: carried with the email rather than
+    fetched, so a client that blocks remote images still shows it. Returns
+    True when something was attached.
+    """
+    from .map_preview import preview_bytes
+
+    data = preview_bytes(getattr(booking, "hut", None))
+    if not data:
+        return False
+    image = MIMEImage(data, _subtype="png")
+    image.add_header("Content-ID", "<booking_map>")
+    image.add_header("Content-Disposition", "inline", filename="ken-location.png")
+    message.attach(image)
+    message.mixed_subtype = "related"
+    return True
 
 
 def _booking_qr_bytes(booking):
@@ -737,6 +761,7 @@ def send_deposit_confirmation(booking):
         from django.core.mail import EmailMultiAlternatives
         from django.template.loader import render_to_string
         from django.utils.html import strip_tags
+        from .map_preview import email_context as map_email_context
 
         recipient = (booking.contact_email or "").strip()
         if not recipient:
@@ -754,6 +779,7 @@ def send_deposit_confirmation(booking):
                 "payment_link": booking_payment_link(booking),
                 "amount_paid": booking.paid,
                 "amount_due": booking.not_paid,
+                **map_email_context(booking.hut),
                 },
         )
         message = EmailMultiAlternatives(
@@ -764,6 +790,7 @@ def send_deposit_confirmation(booking):
         )
         message.attach_alternative(html, "text/html")
         attach_invoice_pdf(message, booking)
+        attach_map_preview(message, booking)
         message.send(fail_silently=False)
         logger.info("Deposit confirmation sent to %s for booking %s", recipient[:50], booking.pk)
         return True

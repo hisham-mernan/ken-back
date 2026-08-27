@@ -398,7 +398,19 @@ from django.core.mail import send_mail
 
 # Frontend / site base URL for emails and links (no trailing slash).
 # Override via FRONTEND_BASE_URL (e.g. https://dash.kenluxuryreef.com or http://localhost:3000).
-FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "https://ken.mernantech.com")
+# The default used to be ken.mernantech.com, which does not resolve at all --
+# so wherever the env var was unset, every "view your booking" and password
+# reset link we emailed was dead on arrival.
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "https://www.kenluxuryreef.com")
+
+# Where a booking confirmation sends a guest to find the huts. A place link is
+# preferred over a bare pin: it opens the listing with its name, photos and
+# directions. Blank falls back to the hut's own coordinates, which always
+# works but shows only a marker. The map picture beside it is a repo asset --
+# see products/map_preview.py for why it is not fetched at send time.
+MAP_PLACE_URL = os.getenv(
+    "MAP_PLACE_URL", "https://maps.google.com/?cid=7619635781702865506"
+)
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

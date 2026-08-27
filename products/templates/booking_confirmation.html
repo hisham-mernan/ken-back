@@ -68,6 +68,31 @@
                   <p style="margin:12px 0 0; font-size:12px; color:#666;">Booking #{{ booking.id }}</p>
                 </div>
 
+
+                {% if map_url %}
+                <!-- Where to turn up. The picture is attached inline so it
+                     survives a client that blocks remote images; when it has
+                     not been built the link stands on its own. -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dee2e6; border-radius:8px; margin-bottom:24px;">
+                  <tr>
+                    <td style="padding:16px;">
+                      <p style="margin:0 0 12px; font-weight:bold;">Where to find us</p>
+                      {% if map_cid %}
+                      <a href="{{ map_url }}" style="text-decoration:none;">
+                        <img src="cid:{{ map_cid }}" alt="Map showing the location of the huts" width="536" style="display:block; width:100%; max-width:536px; height:auto; border:0; border-radius:6px;" />
+                      </a>
+                      {% endif %}
+                      {% if map_address %}
+                      <p style="margin:12px 0 0; font-size:13px; color:#666;">{{ map_address }}</p>
+                      {% endif %}
+                      <p style="margin:12px 0 0;">
+                        <a href="{{ map_url }}" style="color:#6B2C1C; text-decoration:underline; font-size:14px;">Open in Google Maps &rarr;</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
+
                 <p style="text-align:center; margin:0 0 24px;">
                   <a href="{{ booking_link }}" style="display:inline-block; background-color:#0A1F1A; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:6px;">
                     View your booking
