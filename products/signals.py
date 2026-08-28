@@ -1360,7 +1360,16 @@ _CALENDAR_FIELDS = (
 
 @receiver(pre_save, sender=Booking)
 def remember_calendar_fields(sender, instance, **kwargs):
-    """Snapshot the stored row so post_save can tell what actually changed."""
+    """Snapshot the stored row so post_save can tell what actually changed.
+
+    Skipped entirely when the integration is off, so a site with no calendar
+    configured does not pay a query on every booking save for a feature it is
+    not using.
+    """
+    from . import google_calendar
+
+    if not google_calendar.is_enabled():
+        return
     if not instance.pk:
         instance._calendar_before = None
         return
