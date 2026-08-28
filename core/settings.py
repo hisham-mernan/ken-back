@@ -496,10 +496,11 @@ EMAIL_HOST_PASSWORD = "jfcxprwtjykdexfm"
 #                                to eat the newlines and then nothing signs.
 #   GOOGLE_CALENDAR_ID           the calendar to write to.
 #
-# Do not point this at somebody's primary calendar. A service account cannot
-# be given access to a personal primary calendar in the normal way, and the
-# events here carry customer contact details -- they belong on a calendar the
-# business owns and can un-share.
+# Make a dedicated calendar for this rather than using anyone's primary one.
+# These events carry customer names, phone numbers and email addresses, and a
+# personal primary calendar cannot be handed over when that person leaves,
+# cannot be un-shared without disturbing everything else on it, and drags all
+# of their own appointments along with it wherever it is shared.
 #
 # With either value unset the integration stays dormant: bookings work exactly
 # as before and simply reach no calendar. Verify with `manage.py check_google_calendar`.
