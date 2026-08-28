@@ -1,0 +1,89 @@
+name: Reconcile the Google Calendar
+
+# The signals in products/signals.py push each booking to the calendar as it
+# changes, and they are deliberately best-effort: a Google timeout is logged
+# and dropped rather than allowed to fail a booking that has already been paid
+# for. That is only a safe trade because of this job. It re-pushes every active
+# stay and removes events for bookings that are no longer active, so anything
+# the live path dropped is put right within a few hours.
+#
+# Same reasoning as expire-bookings.yml: Vercel freezes the process the moment
+# a response is sent, so recurring work has to run somewhere that is awake.
+#
+# Dormant until the two Google secrets are set -- see core/settings.py under
+# GOOGLE_CALENDAR_ID for how to obtain them.
+
+on:
+  schedule:
+    # Every six hours. The live path is what makes bookings appear promptly;
+    # this only has to catch what it missed, and each run costs a handful of
+    # API calls.
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report what would change, change nothing"
+        type: boolean
+        default: false
+      prune:
+        description: "Also remove events whose booking is no longer active"
+        type: boolean
+        default: true
+
+# One run at a time: two could fight over the same event.
+concurrency:
+  group: sync-google-calendar
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Skip quietly when the integration is not configured
+        id: configured
+        env:
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GOOGLE_CALENDAR_ID" ] || [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "Google Calendar secrets are not set - nothing to reconcile."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require the production connection string
+        # Without it settings.py falls back to SQLite and this would sync an
+        # empty throwaway database, wiping the calendar with --prune and
+        # reporting success. A false green here is worse than a failure.
+        if: steps.configured.outputs.run == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is not set - refusing to run."
+            exit 1
+          fi
+          echo "DATABASE_URL is set (${#DATABASE_URL} characters)."
+
+      - name: Reconcile
+        if: steps.configured.outputs.run == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          FRONTEND_BASE_URL: ${{ secrets.FRONTEND_BASE_URL }}
+        run: |
+          python manage.py sync_google_calendar \
+            ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
+            ${{ github.event.inputs.prune != 'false' && '--prune' || '' }}

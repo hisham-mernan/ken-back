@@ -472,6 +472,43 @@ EMAIL_HOST_PASSWORD = "jfcxprwtjykdexfm"
 #
 # With base url or api key unset the integration stays dormant: bookings and
 # payments work exactly as before and simply carry no invoice.
+# Google Calendar. Every stay that holds dates is pushed to one shared
+# calendar so the desk sees bookings beside its own appointments -- see
+# products/google_calendar.py.
+#
+# Setting it up, once:
+#   1. Google Cloud Console > new project > enable the Google Calendar API.
+#   2. Create a service account. No roles are needed: it reaches the calendar
+#      through a share, not through project IAM.
+#   3. Create a JSON key for it and copy the whole file.
+#   4. In Google Calendar, make (or pick) the calendar the desk will watch.
+#      Settings > Share with specific people > add the service account's
+#      client_email, with "Make changes to events". This is the step people
+#      miss; without it every write comes back 404, because to the service
+#      account a calendar it cannot see does not exist.
+#   5. From that calendar's settings copy its Calendar ID into
+#      GOOGLE_CALENDAR_ID -- for a secondary calendar it looks like
+#      ...@group.calendar.google.com.
+#
+#   GOOGLE_SERVICE_ACCOUNT_JSON  the key file, raw or base64-encoded. Prefer
+#                                base64: pasting a PEM private key into a
+#                                hosting provider's environment editor tends
+#                                to eat the newlines and then nothing signs.
+#   GOOGLE_CALENDAR_ID           the calendar to write to.
+#
+# Do not point this at somebody's primary calendar. A service account cannot
+# be given access to a personal primary calendar in the normal way, and the
+# events here carry customer contact details -- they belong on a calendar the
+# business owns and can un-share.
+#
+# With either value unset the integration stays dormant: bookings work exactly
+# as before and simply reach no calendar. Verify with `manage.py check_google_calendar`.
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or ""
+GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID") or ""
+GOOGLE_CALENDAR_TIMEOUT = int(os.getenv("GOOGLE_CALENDAR_TIMEOUT", "10"))
+GOOGLE_CALENDAR_ENABLED = bool(GOOGLE_SERVICE_ACCOUNT_JSON and GOOGLE_CALENDAR_ID)
+
+
 DAFTRA_BASE_URL = (os.getenv("DAFTRA_BASE_URL") or "").rstrip("/")
 DAFTRA_API_KEY = os.getenv("DAFTRA_API_KEY") or ""
 DAFTRA_INVOICE_LAYOUT_ID = os.getenv("DAFTRA_INVOICE_LAYOUT_ID") or None

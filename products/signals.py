@@ -1338,3 +1338,94 @@ def send_deposit_email(sender, instance, created, **kwargs):
 
     from .utils import send_deposit_confirmation
     send_deposit_confirmation(instance)
+
+
+# --------------------------------------------------------- Google Calendar
+#
+# The dashboard calendar only exists inside the dashboard. These handlers
+# mirror the same stays onto a shared Google Calendar so the desk sees them
+# beside its own appointments. products/google_calendar.py swallows every
+# error it meets, so nothing below can fail a booking.
+
+from django.db import transaction
+
+# The fields that change what the event says. A Booking is saved several times
+# in a single checkout by the handlers above; without this the calendar would
+# be rewritten on each of them for no change.
+_CALENDAR_FIELDS = (
+    "status", "paid", "not_paid", "total_price", "hut_id", "user_id",
+    "persons_max_num", "kids_max_num", "guest_name", "guest_phone", "guest_email",
+)
+
+
+@receiver(pre_save, sender=Booking)
+def remember_calendar_fields(sender, instance, **kwargs):
+    """Snapshot the stored row so post_save can tell what actually changed."""
+    if not instance.pk:
+        instance._calendar_before = None
+        return
+    instance._calendar_before = (
+        Booking.objects.filter(pk=instance.pk).values(*_CALENDAR_FIELDS).first()
+    )
+
+
+@receiver(post_save, sender=Booking)
+def push_booking_to_calendar(sender, instance, created, **kwargs):
+    from . import google_calendar
+
+    if not google_calendar.is_enabled():
+        return
+
+    before = getattr(instance, "_calendar_before", None)
+    after = {field: getattr(instance, field) for field in _CALENDAR_FIELDS}
+    if not created and before == after:
+        return
+
+    was_active = bool(before) and before["status"] in ACTIVE_BOOKING_STATUSES
+    is_active = instance.status in ACTIVE_BOOKING_STATUSES
+    if not (is_active or was_active):
+        return
+
+    # on_commit, so a checkout that rolls back never leaves an event behind for
+    # a booking that does not exist.
+    booking_pk = instance.pk
+
+    def _push():
+        booking = Booking.objects.filter(pk=booking_pk).select_related("hut").first()
+        if booking is None:
+            return
+        if booking.status in ACTIVE_BOOKING_STATUSES:
+            google_calendar.sync_booking(booking)
+        else:
+            google_calendar.remove_booking(booking)
+
+    transaction.on_commit(_push)
+
+
+@receiver([post_save, post_delete], sender=BookingDate)
+def push_booking_dates_to_calendar(sender, instance, **kwargs):
+    """Dates are what the event spans, so a change to them has to be pushed.
+
+    On create the booking's own post_save runs before any BookingDate exists,
+    so this is also what puts a brand new booking on the calendar.
+    """
+    from . import google_calendar
+
+    if not google_calendar.is_enabled():
+        return
+
+    booking_pk = instance.booking_id
+    if not booking_pk:
+        return
+
+    def _push():
+        # Re-read rather than trusting the instance: the booking may have been
+        # cascade-deleted with its dates, and an extra night added moments ago
+        # has to be picked up from the database, not from this row.
+        booking = Booking.objects.filter(pk=booking_pk).select_related("hut").first()
+        if booking is None:
+            return
+        if booking.status in ACTIVE_BOOKING_STATUSES:
+            google_calendar.sync_booking(booking)
+
+    transaction.on_commit(_push)
