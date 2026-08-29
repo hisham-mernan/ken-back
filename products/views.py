@@ -2922,3 +2922,38 @@ class PromoCodeDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         kwargs['partial'] = True  # ensure partial update
         return super().update(request, *args, **kwargs)
+
+
+class AdminIntegrationsView(APIView):
+    """Which optional integrations this deployment actually has switched on.
+
+    Every one of them is dormant without its credentials and silent when a call
+    fails, which is right for production and useless when you are asking why
+    nothing happened. The usual answer is that the environment variables were
+    added but the deployment serving traffic was built before them -- Vercel
+    applies new variables to new builds only, so the running code never sees
+    them until a redeploy.
+
+    Reports whether values are present, never what they are.
+    """
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from django.conf import settings
+
+        def state(enabled, **present):
+            return {"enabled": bool(enabled), **{k: bool(v) for k, v in present.items()}}
+
+        return Response({
+            "google_calendar": state(
+                getattr(settings, "GOOGLE_CALENDAR_ENABLED", False),
+                calendar_id=getattr(settings, "GOOGLE_CALENDAR_ID", ""),
+                credentials=getattr(settings, "GOOGLE_SERVICE_ACCOUNT_JSON", ""),
+            ),
+            "daftra": state(
+                getattr(settings, "DAFTRA_ENABLED", False),
+                base_url=getattr(settings, "DAFTRA_BASE_URL", ""),
+                api_key=getattr(settings, "DAFTRA_API_KEY", ""),
+            ),
+            "frontend_base_url": getattr(settings, "FRONTEND_BASE_URL", ""),
+        }, status=status.HTTP_200_OK)
