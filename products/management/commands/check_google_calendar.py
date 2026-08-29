@@ -57,12 +57,20 @@ class Command(BaseCommand):
         self.stdout.write("  returns 404 -- an unshared calendar does not exist to it.")
 
         # -------------------------------------------------------------- read
+        #
+        # Lists events rather than fetching the calendar object. GET
+        # /calendars/{id} belongs to the Calendars resource, which the
+        # calendar.events scope does not cover, so it answers 403 "insufficient
+        # authentication scopes" even when the setup is perfect -- a thoroughly
+        # misleading way to fail. The events list is in scope, and its response
+        # carries the calendar's name, time zone and our access role anyway.
         self.stdout.write("\nReading the calendar")
         try:
             session = google_calendar._session()
             response = google_calendar._call(
                 session, "GET",
-                "/calendars/{}".format(settings.GOOGLE_CALENDAR_ID))
+                "/calendars/{}/events".format(settings.GOOGLE_CALENDAR_ID),
+                params={"maxResults": 1})
         except Exception as exc:
             self.stdout.write(bad("  failed: {}".format(exc)))
             return
@@ -78,6 +86,14 @@ class Command(BaseCommand):
         body = response.json()
         self.stdout.write(ok("  reachable: {!r} ({})".format(
             body.get("summary", "?"), body.get("timeZone", "?"))))
+
+        # The events list reports the access we were actually granted, which is
+        # the difference between a share that can write and one that cannot.
+        access = body.get("accessRole", "?")
+        self.stdout.write("  access granted to us: {}".format(access))
+        if access in ("reader", "freeBusyReader"):
+            self.stdout.write(bad("  That is read-only. The share needs"))
+            self.stdout.write(bad("  'Make changes to events', or nothing can be written."))
 
         if options["skip_write"]:
             self.stdout.write(warn("\nWrite test skipped."))
