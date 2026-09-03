@@ -1201,6 +1201,7 @@ from .models import (
 # from decimal import Decimal
 # from django.db.models.signals import post_save, post_delete
 # from django.db import transaction
+from types import SimpleNamespace
 # from django.dispatch import receiver
 # from .models import (
 #     Booking, BookingDate, EventTicket, ServiceTicket,
@@ -1438,3 +1439,25 @@ def push_booking_dates_to_calendar(sender, instance, **kwargs):
             google_calendar.sync_booking(booking)
 
     transaction.on_commit(_push)
+
+
+@receiver(post_delete, sender=Booking)
+def drop_deleted_booking_from_calendar(sender, instance, **kwargs):
+    """A deleted booking must not keep holding a place on the calendar.
+
+    The status handler above covers cancelling, which is how a stay normally
+    stops. A row deleted outright fires no status change at all, so without
+    this the event outlived the booking -- and nothing would ever clear it,
+    since sync_google_calendar's prune only reaches events it can still match
+    to a row.
+    """
+    from . import google_calendar
+
+    if not google_calendar.is_enabled():
+        return
+
+    # The row is already gone, so this cannot re-read it. Everything
+    # remove_booking needs is the primary key, which the instance still has.
+    pk = instance.pk
+    transaction.on_commit(
+        lambda: google_calendar.remove_booking(SimpleNamespace(pk=pk)))

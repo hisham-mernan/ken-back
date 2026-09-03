@@ -247,6 +247,18 @@ class GoogleCalendarTests(TestCase):
         sync.assert_not_called()
 
     @override_settings(**ENABLED)
+    def test_deleting_a_booking_takes_its_event_off_the_calendar(self):
+        """Deleting a row fires no status change, so it needs its own handler."""
+        booking = self.make(status="paid")
+        pk = booking.pk
+        with patch.object(google_calendar, "remove_booking",
+                          return_value=True) as remove:
+            with self.captureOnCommitCallbacks(execute=True):
+                booking.delete()
+        remove.assert_called()
+        self.assertEqual(remove.call_args[0][0].pk, pk)
+
+    @override_settings(**ENABLED)
     def test_adding_an_extra_night_pushes_the_new_span(self):
         booking = self.make(status="paid")
         with patch.object(google_calendar, "sync_booking",
