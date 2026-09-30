@@ -55,7 +55,16 @@ class User(AbstractUser):
     birth_date=models.DateField(null=True,blank=True)
     username = models.CharField(max_length=225, unique=False, null=True, blank=True)
     phone=models.CharField(max_length=16)
-    id_num=models.IntegerField(max_length=15,null=True)
+    # BigInteger, not Integer. A Saudi national ID is ten digits, and a
+    # resident's begins with 2 -- so anything from 2147483648 upwards, which is
+    # about 85% of them, overflowed the 32-bit column and was refused at
+    # registration with "Ensure this value is less than or equal to
+    # 2147483647." The front end showed that as "an unexpected error".
+    #
+    # (max_length does nothing on an integer field; Django warns W122. Left off
+    # rather than carried over, since a ten-digit check belongs in validation,
+    # not in a column width.)
+    id_num = models.BigIntegerField(null=True)
     is_verfied=models.BooleanField(default=False)
     otp_secret = models.CharField(max_length=6, blank=True, null=True)
     created_at=models.DateField(auto_now_add=True)
