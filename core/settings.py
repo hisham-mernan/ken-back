@@ -430,7 +430,7 @@ FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "https://www.kenluxuryreef.co
 # works but shows only a marker. The map picture beside it is a repo asset --
 # see products/map_preview.py for why it is not fetched at send time.
 MAP_PLACE_URL = os.getenv(
-    "MAP_PLACE_URL", "https://maps.google.com/?cid=7619635781702865506"
+    "MAP_PLACE_URL", "https://maps.app.goo.gl/HPEjSs9R9puyoBWBA"
 )
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

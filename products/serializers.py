@@ -148,6 +148,10 @@ class HutSerializer(serializers.ModelSerializer):
     activities = serializers.SerializerMethodField()
     lowest_price=serializers.SerializerMethodField()
     total_reviews = serializers.SerializerMethodField()
+    # The Google Maps listing, so the site can hand a visitor to the place by
+    # name rather than drop them on a bare pin at a coordinate. One site, so
+    # one link for all three cottages -- it lives in settings, not per row.
+    map_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Hut
@@ -222,6 +226,11 @@ class HutSerializer(serializers.ModelSerializer):
     def get_activities(self, obj):
         activities = obj.activities.all()
         return HutActivitySerializer(activities, many=True, context=self.context).data
+
+    def get_map_url(self, obj):
+        from django.conf import settings
+
+        return getattr(settings, "MAP_PLACE_URL", "") or ""
 
     def get_lowest_price(self, obj):
         # The "from" figure. Rates live on the hut now, not on the date
