@@ -1807,6 +1807,11 @@ class BookingSerializer(serializers.ModelSerializer):
     is_valid = serializers.SerializerMethodField()
     dates = serializers.SerializerMethodField(read_only=True) 
     promocode = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    # Optional at the door: a booking with no children is the common case, and
+    # the form lets the field be left empty rather than demanding a nought.
+    # The model column is not nullable, so absence becomes 0 here rather than
+    # reaching the database.
+    kids_max_num = serializers.IntegerField(required=False, default=0, min_value=0)
     promocode_obj = PromoCodeSerializer(read_only=True, source='promocode')
     # Just the percentage, never the code itself. The checkout page has to show
     # the guest why their total dropped, but BookingDetailView strips both
